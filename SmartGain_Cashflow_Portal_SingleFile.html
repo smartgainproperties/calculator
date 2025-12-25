@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Smart Gain Properties • Cashflow Portal</title>
+  <link rel="icon" type="image/png" href="favicon.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,14 +13,19 @@
   <style>
 /* Smart Gain Properties themed styling */
 :root{
-  --green: #1B4332;
-  --gold:  #D4AF37;
-  --bg: #F7F6F2;
+  --green: #1B4332;   /* Smart Green */
+  --gold:  #D4AF37;   /* Smart Yellow */
+  --teal: #A3C9C0;    /* Soft Teal */
+  --taupe: #B8A392;   /* Warm Taupe */
+  --ivory: #F1EDEB;   /* Pale Ivory */
+  --slate: #6D7A7D;   /* Slate Grey */
+
+  --bg: #F1EDEB;
   --card: #FFFFFF;
-  --cardTint: rgba(27,67,50,.06);
+  --cardTint: rgba(27,67,50,.05);
   --text: #101412;
-  --muted: rgba(16,20,18,.65);
-  --line: rgba(27,67,50,.14);
+  --muted: rgba(16,20,18,.72);
+  --line: rgba(27,67,50,.16);
   --radius: 18px;
   --shadow: 0 14px 35px rgba(0,0,0,.08);
   --font-head: "Host Grotesk", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
@@ -31,9 +37,9 @@ body{
   font-family: var(--font-body);
   color: var(--text);
   background:
-    radial-gradient(900px 600px at 12% 0%, rgba(27,67,50,.10), transparent 55%),
-    radial-gradient(900px 600px at 88% 10%, rgba(212,175,55,.14), transparent 55%),
-    var(--bg);
+    radial-gradient(1100px 720px at 12% 0%, rgba(27,67,50,.15), transparent 52%),
+    radial-gradient(900px 520px at 88% 10%, rgba(212,175,55,.16), transparent 55%),
+    linear-gradient(140deg, rgba(163,201,192,.30), rgba(241,237,235,.85));
 }
 .pattern{
   position: fixed;
@@ -65,13 +71,11 @@ header{
   gap: 10px;
   margin-bottom: 10px;
 }
-.mark{
-  width: 14px;
-  height: 14px;
-  border-radius: 5px;
-  background: linear-gradient(135deg, var(--green), #133025);
-  border: 1px solid rgba(212,175,55,.45);
-  box-shadow: 0 10px 22px rgba(27,67,50,.18);
+.brandLogo{
+  height: 52px;
+  width: auto;
+  display:block;
+  filter: drop-shadow(0 8px 22px rgba(0,0,0,.12));
 }
 .brandline .b{
   font-weight: 800;
@@ -81,17 +85,39 @@ header{
   font-family: var(--font-head);
   text-transform: uppercase;
 }
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  background: linear-gradient(90deg, rgba(27,67,50,.12), rgba(212,175,55,.20));
+  color: var(--green);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .4px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(27,67,50,.18);
+}
+.eyebrow .dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 4px rgba(212,175,55,.12);
+}
 .title h1{
   margin:0;
-  font-size: 24px;
+  font-size: 28px;
   letter-spacing: .2px;
   font-family: var(--font-head);
+  font-weight: 800;
+  color: var(--green);
 }
 .title p{
   margin:8px 0 0 0;
   color: var(--muted);
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.55;
   max-width: 820px;
 }
 .actions{
@@ -117,10 +143,10 @@ button{
 button:hover{ background: rgba(27,67,50,.09); }
 button:active{ transform: translateY(1px); }
 .btnPrimary{
-  background: linear-gradient(135deg, var(--green), #133025);
+  background: linear-gradient(135deg, var(--green), #0f2a1f 40%, var(--gold));
   border: 1px solid rgba(212,175,55,.35);
   color: white;
-  box-shadow: 0 10px 24px rgba(27,67,50,.14);
+  box-shadow: 0 12px 26px rgba(27,67,50,.18);
 }
 .btnPrimary:hover{ filter: brightness(1.03); }
 .grid{
@@ -160,9 +186,9 @@ button:active{ transform: translateY(1px); }
 .badge{
   font-family: var(--mono);
   font-size: 12px;
-  color: rgba(16,20,18,.65);
+  color: rgba(16,20,18,.75);
   background: rgba(27,67,50,.06);
-  border: 1px solid var(--line);
+  border: 1px solid rgba(27,67,50,.16);
   padding: 6px 10px;
   border-radius: 999px;
 }
@@ -227,6 +253,7 @@ input:focus, select:focus{
 .kpiHero{
   border: 1px solid rgba(212,175,55,.35);
   box-shadow: 0 10px 26px rgba(212,175,55,.10);
+  background: linear-gradient(135deg, rgba(27,67,50,.06), rgba(212,175,55,.10));
 }
 .split{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 960px){ .split{ grid-template-columns: 1fr; } }
@@ -244,9 +271,10 @@ input:focus, select:focus{
     <header>
       <div class="title">
         <div class="brandline">
-          <div class="mark"></div>
+          <img src="Logo Full - Color.png" alt="Smart Gain Properties logo" class="brandLogo">
           <div class="b">SMART GAIN PROPERTIES</div>
         </div>
+        <div class="eyebrow"><span class="dot" aria-hidden="true"></span>Cashflow &amp; Portfolio Snapshot</div>
 
         <h1>Investment Cashflow Portal</h1>
         <p>
@@ -770,24 +798,46 @@ function sizeCanvas(canvas){
   return { dpr, w: canvas.width, h: canvas.height };
 }
 
+function sanitizeNumbers(arr){
+  return arr.map(v => Number.isFinite(v) ? v : 0);
+}
+function rangeBounds(arr, fallback=0){
+  const finite = arr.filter(Number.isFinite);
+  if (!finite.length) return { min: fallback, max: fallback };
+  return { min: Math.min(...finite), max: Math.max(...finite) };
+}
+function maxOr(arr, fallback=1){
+  const finite = arr.filter(Number.isFinite);
+  if (!finite.length) return fallback;
+  return Math.max(...finite, fallback);
+}
+
 function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLabel){
   const ctx = canvas.getContext("2d");
+  if (!ctx) return;
   const { dpr, w, h } = sizeCanvas(canvas);
   ctx.clearRect(0,0,w,h);
 
   const padL = 56 * dpr, padR = 20 * dpr, padT = 26 * dpr, padB = 34 * dpr;
 
-  const xMin = Math.min(...xVals);
-  const xMax = Math.max(...xVals);
+  const xs = sanitizeNumbers(xVals);
+  const left = sanitizeNumbers(leftSeries);
+  const right = sanitizeNumbers(rightSeries);
+
+  const { min: xMin, max: xMax } = rangeBounds(xs, 0);
+  const xSpan = xMax - xMin || 1;
 
   const yLMin = 0;
-  const yLMax = Math.max(...leftSeries, 1) * 1.06;
+  const yLMax = maxOr(left, 1) * 1.06;
   const yRMin = 0;
-  const yRMax = Math.max(...rightSeries, 1) * 1.16;
+  const yRMax = maxOr(right, 1) * 1.16;
 
-  const xScale = (x) => padL + ((x - xMin) / (xMax - xMin || 1)) * (w - padL - padR);
-  const yScaleL = (y) => padT + (1 - ((y - yLMin) / (yLMax - yLMin || 1))) * (h - padT - padB);
-  const yScaleR = (y) => padT + (1 - ((y - yRMin) / (yRMax - yRMin || 1))) * (h - padT - padB);
+  const yLSpan = yLMax - yLMin || 1;
+  const yRSpan = yRMax - yRMin || 1;
+
+  const xScale = (x) => padL + ((x - xMin) / xSpan) * (w - padL - padR);
+  const yScaleL = (y) => padT + (1 - ((y - yLMin) / yLSpan)) * (h - padT - padB);
+  const yScaleR = (y) => padT + (1 - ((y - yRMin) / yRSpan)) * (h - padT - padB);
 
   ctx.strokeStyle = "rgba(27,67,50,.14)";
   ctx.lineWidth = 1 * dpr;
@@ -818,28 +868,28 @@ function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLa
     ctx.fillText(label, (w - padR - tw), y + 4*dpr);
   }
 
-  for(const x of xVals){
+  xs.forEach((x) => {
     const px = xScale(x);
     const label = "Y" + x;
     const tw = ctx.measureText(label).width;
     ctx.fillText(label, px - tw/2, h - 12*dpr);
-  }
+  });
 
   ctx.strokeStyle = "#1B4332";
   ctx.lineWidth = 2.5 * dpr;
   ctx.beginPath();
-  xVals.forEach((x, idx) => {
+  xs.forEach((x, idx) => {
     const px = xScale(x);
-    const py = yScaleL(leftSeries[idx]);
+    const py = yScaleL(left[idx]);
     if(idx === 0) ctx.moveTo(px, py);
     else ctx.lineTo(px, py);
   });
   ctx.stroke();
 
   ctx.fillStyle = "#1B4332";
-  xVals.forEach((x, idx) => {
+  xs.forEach((x, idx) => {
     const px = xScale(x);
-    const py = yScaleL(leftSeries[idx]);
+    const py = yScaleL(left[idx]);
     ctx.beginPath();
     ctx.arc(px, py, 3.5*dpr, 0, Math.PI*2);
     ctx.fill();
@@ -848,18 +898,18 @@ function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLa
   ctx.strokeStyle = "#D4AF37";
   ctx.lineWidth = 2.5 * dpr;
   ctx.beginPath();
-  xVals.forEach((x, idx) => {
+  xs.forEach((x, idx) => {
     const px = xScale(x);
-    const py = yScaleR(rightSeries[idx]);
+    const py = yScaleR(right[idx]);
     if(idx === 0) ctx.moveTo(px, py);
     else ctx.lineTo(px, py);
   });
   ctx.stroke();
 
   ctx.fillStyle = "#D4AF37";
-  xVals.forEach((x, idx) => {
+  xs.forEach((x, idx) => {
     const px = xScale(x);
-    const py = yScaleR(rightSeries[idx]);
+    const py = yScaleR(right[idx]);
     ctx.beginPath();
     ctx.arc(px, py, 3.5*dpr, 0, Math.PI*2);
     ctx.fill();
@@ -878,19 +928,24 @@ function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLa
 
 function drawSingle(canvas, xVals, series, label){
   const ctx = canvas.getContext("2d");
+  if (!ctx) return;
   const { dpr, w, h } = sizeCanvas(canvas);
   ctx.clearRect(0,0,w,h);
 
   const padL = 56 * dpr, padR = 20 * dpr, padT = 26 * dpr, padB = 34 * dpr;
 
+  const xs = sanitizeNumbers(xVals);
+  const ys = sanitizeNumbers(series);
+
   const yMin = 0;
-  const yMax = Math.max(...series, 1) * 1.06;
+  const yMax = maxOr(ys, 1) * 1.06;
 
-  const xMin = Math.min(...xVals);
-  const xMax = Math.max(...xVals);
+  const { min: xMin, max: xMax } = rangeBounds(xs, 0);
+  const xSpan = xMax - xMin || 1;
+  const ySpan = yMax - yMin || 1;
 
-  const xScale = (x) => padL + ((x - xMin) / (xMax - xMin || 1)) * (w - padL - padR);
-  const yScale = (y) => padT + (1 - ((y - yMin) / (yMax - yMin || 1))) * (h - padT - padB);
+  const xScale = (x) => padL + ((x - xMin) / xSpan) * (w - padL - padR);
+  const yScale = (y) => padT + (1 - ((y - yMin) / ySpan)) * (h - padT - padB);
 
   ctx.strokeStyle = "rgba(27,67,50,.14)";
   ctx.lineWidth = 1 * dpr;
@@ -912,28 +967,28 @@ function drawSingle(canvas, xVals, series, label){
     ctx.fillText((v/1000).toFixed(0) + "k", 8*dpr, y + 4*dpr);
   }
 
-  for(const x of xVals){
+  xs.forEach((x) => {
     const px = xScale(x);
     const labelX = "Y" + x;
     const tw = ctx.measureText(labelX).width;
     ctx.fillText(labelX, px - tw/2, h - 12*dpr);
-  }
+  });
 
   ctx.strokeStyle = "#1B4332";
   ctx.lineWidth = 2.5 * dpr;
   ctx.beginPath();
-  xVals.forEach((x, idx) => {
+  xs.forEach((x, idx) => {
     const px = xScale(x);
-    const py = yScale(series[idx]);
+    const py = yScale(ys[idx]);
     if(idx === 0) ctx.moveTo(px, py);
     else ctx.lineTo(px, py);
   });
   ctx.stroke();
 
   ctx.fillStyle = "#1B4332";
-  xVals.forEach((x, idx) => {
+  xs.forEach((x, idx) => {
     const px = xScale(x);
-    const py = yScale(series[idx]);
+    const py = yScale(ys[idx]);
     ctx.beginPath();
     ctx.arc(px, py, 3.5*dpr, 0, Math.PI*2);
     ctx.fill();
