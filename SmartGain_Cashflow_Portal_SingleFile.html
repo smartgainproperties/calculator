@@ -407,7 +407,6 @@ input:hover, select:hover{
       <div class="title">
         <div class="brandline">
           <img src="Logo Full - Color.png" alt="Smart Gain Properties logo" class="brandLogo">
-          <div class="b">SMART GAIN PROPERTIES</div>
         </div>
         <div class="eyebrow"><span class="dot" aria-hidden="true"></span>Cashflow &amp; Portfolio Snapshot</div>
 
@@ -853,18 +852,78 @@ function projectValue(base, annualRate, years){
   return base * Math.pow(1 + annualRate, years);
 }
 
+// Calculate cash flow for a specific year in the projection
+function calculateYearCashflow(year, baseInputs, baseComputed){
+  const rentGrowth = parsePercentLoose($("rentGrowthPct").value || "3");
+  const expenseGrowth = parsePercentLoose($("cashflowGrowthPct").value || "2");
+
+  // Project rent for this year
+  const projectedRentWk = baseInputs.rentWeek * Math.pow(1 + rentGrowth, year);
+  const rentComm = parsePercentLoose(baseInputs.rentComm);
+  const netRentYr = projectedRentWk * 52 * (1 - rentComm);
+
+  // Calculate remaining balance and interest for this year
+  const months = Math.min(year * 12, baseComputed.nper);
+  const balanceStart = remainingBalance(baseComputed.loanAmount, baseComputed.monthlyRate, baseComputed.monthlyPAndI, months);
+  const balanceEnd = remainingBalance(baseComputed.loanAmount, baseComputed.monthlyRate, baseComputed.monthlyPAndI, Math.min(months + 12, baseComputed.nper));
+
+  // Calculate interest paid during this year
+  // For P&I loan, we can calculate total payments minus principal reduction
+  const principalPaid = balanceStart - balanceEnd;
+  const totalPayments = baseComputed.monthlyPAndI * Math.min(12, baseComputed.nper - months);
+  const interestPaid = totalPayments - principalPaid;
+
+  // Project other expenses with expense growth
+  const councilYr = baseInputs.councilYr * Math.pow(1 + expenseGrowth, year);
+  const buildingInsYr = baseInputs.buildingInsYr * Math.pow(1 + expenseGrowth, year);
+  const landlordInsYr = baseInputs.landlordInsYr * Math.pow(1 + expenseGrowth, year);
+  const maintenanceYr = baseInputs.maintenanceYr * Math.pow(1 + expenseGrowth, year);
+  const accountingYr = baseInputs.accountingYr * Math.pow(1 + expenseGrowth, year);
+  const otherExpenses = councilYr + buildingInsYr + landlordInsYr + maintenanceYr + accountingYr;
+
+  // Total annual expense (P&I + other expenses)
+  const annualExpense = totalPayments + otherExpenses;
+
+  // Pre-tax cash flow
+  const cashflowYrPreTax = netRentYr - annualExpense - baseInputs.superYr;
+
+  // Depreciation (decreases over time but we'll use a simplified approach)
+  const buildingValuePct = parsePercentLoose(baseInputs.buildingValuePct || 70);
+  const deprRatePct = parsePercentLoose(baseInputs.deprRatePct || 2.5);
+  const depreciationYr = baseInputs.purchasePrice * buildingValuePct * deprRatePct;
+
+  // Tax deductible amount: interest + other expenses + depreciation
+  const taxDeductRatio = parsePercentLoose(baseInputs.taxDeductRatio || 100);
+  const taxRate = parsePercentLoose(baseInputs.taxRate);
+
+  // Only interest and other expenses are deductible, NOT principal
+  const deductibleExpenses = interestPaid + otherExpenses;
+  const taxableIncome = netRentYr - deductibleExpenses;
+
+  let taxBenefit = 0;
+  if (taxableIncome < 0) {
+    // Negative taxable income = tax benefit from loss
+    taxBenefit = Math.abs(taxableIncome + depreciationYr) * taxDeductRatio * taxRate;
+  } else {
+    // Positive taxable income = tax liability (but we also get depreciation benefit)
+    taxBenefit = depreciationYr * taxDeductRatio * taxRate;
+  }
+
+  const cashflowYrAfterTax = cashflowYrPreTax + taxBenefit;
+
+  return cashflowYrAfterTax;
+}
+
 function renderProjection(baseComputed, baseInputs){
   const yearsRaw = parseYearsCSV($("projPreset").value || "1,2,3,5,10,20,30");
   const years = Array.from(new Set([0, ...yearsRaw])).sort((a,b)=>a-b);
 
   const capGrowth = parsePercentLoose($("capGrowthPct").value || "6");
   const rentGrowth = parsePercentLoose($("rentGrowthPct").value || "3");
-  const cashGrowth = parsePercentLoose($("cashflowGrowthPct").value || "0");
   const view = $("chartView").value;
 
   const baseValue = baseInputs.purchasePrice;
   const baseRentWk = baseInputs.rentWeek;
-  const baseNetCashPerYear = baseComputed.cashflowMonthAfterTax * 12;
 
   const pv = baseComputed.loanAmount;
   const r = baseComputed.monthlyRate;
@@ -884,7 +943,14 @@ function renderProjection(baseComputed, baseInputs){
     const rw = projectValue(baseRentWk, rentGrowth, y);
     const bal = remainingBalance(pv, r, payment, months);
     const eq = Math.max(0, v - bal);
-    const cash = baseNetCashPerYear * Math.pow(1 + cashGrowth, y);
+
+    // Calculate actual cash flow for this year
+    let cash;
+    if (y === 0) {
+      cash = baseComputed.cashflowMonthAfterTax * 12;
+    } else {
+      cash = calculateYearCashflow(y, baseInputs, baseComputed);
+    }
 
     xVals.push(y);
     values.push(v);
