@@ -1017,7 +1017,7 @@ function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLa
   const { dpr, w, h } = sizeCanvas(canvas);
   ctx.clearRect(0,0,w,h);
 
-  const padL = 56 * dpr, padR = 20 * dpr, padT = 26 * dpr, padB = 34 * dpr;
+  const padL = 56 * dpr, padR = 70 * dpr, padT = 26 * dpr, padB = 34 * dpr;
 
   const xs = sanitizeNumbers(xVals);
   const left = sanitizeNumbers(leftSeries);
@@ -1131,7 +1131,7 @@ function drawSingle(canvas, xVals, series, label){
   const { dpr, w, h } = sizeCanvas(canvas);
   ctx.clearRect(0,0,w,h);
 
-  const padL = 56 * dpr, padR = 20 * dpr, padT = 26 * dpr, padB = 34 * dpr;
+  const padL = 56 * dpr, padR = 70 * dpr, padT = 26 * dpr, padB = 34 * dpr;
 
   const xs = sanitizeNumbers(xVals);
   const ys = sanitizeNumbers(series);
