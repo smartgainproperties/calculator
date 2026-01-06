@@ -1176,218 +1176,437 @@ function renderProjection(baseComputed, baseInputs){
   }
 }
 
-function sizeCanvas(canvas){
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  const cssW = Math.max(320, rect.width || 0);
-  const cssH = Math.max(140, parseInt(canvas.getAttribute("height") || "160",10));
-  canvas.width = Math.floor(cssW * dpr);
-  canvas.height = Math.floor(cssH * dpr);
-  return { dpr, w: canvas.width, h: canvas.height };
+// ============================================================================
+// CHART SYSTEM - Modular Architecture
+// ============================================================================
+
+/**
+ * ChartConfig - Central configuration for chart styling and layout
+ */
+class ChartConfig {
+  constructor(options = {}) {
+    // Colors from CSS variables
+    this.colors = {
+      primary: '#1B4332',      // Smart Green
+      secondary: '#D4AF37',    // Smart Gold
+      grid: 'rgba(27,67,50,.14)',
+      label: 'rgba(16,20,18,.65)',
+      legendLabel: 'rgba(16,20,18,.75)'
+    };
+
+    // Layout
+    this.padding = {
+      left: 56,
+      right: 50,
+      top: 26,
+      bottom: 34
+    };
+
+    // Typography
+    this.font = {
+      size: 12,
+      family: getComputedStyle(document.body).fontFamily
+    };
+
+    // Visual elements
+    this.line = {
+      width: 2.5,
+      pointRadius: 3.5
+    };
+
+    this.grid = {
+      lineWidth: 1,
+      divisions: 4
+    };
+
+    this.legend = {
+      boxSize: 12,
+      spacing: 92,
+      offset: { x: 18, y: 10 }
+    };
+
+    // Axis settings
+    this.axis = {
+      topMargin: 1.06,      // 6% margin above max value
+      rightAxisMargin: 1.16 // 16% margin for right axis
+    };
+
+    // Allow overrides
+    Object.assign(this, options);
+  }
+
+  getDPR() {
+    return window.devicePixelRatio || 1;
+  }
 }
 
-function sanitizeNumbers(arr){
-  return arr.map(v => Number.isFinite(v) ? v : 0);
+/**
+ * ChartData - Data validation and transformation
+ */
+class ChartData {
+  constructor(xValues, series) {
+    this.x = this.sanitize(xValues);
+    this.series = series.map(s => ({
+      data: this.sanitize(s.data),
+      label: s.label || '',
+      color: s.color || '#000000',
+      axis: s.axis || 'left',
+      formatType: s.formatType || 'currency'
+    }));
+  }
+
+  sanitize(arr) {
+    return arr.map(v => Number.isFinite(v) ? v : 0);
+  }
+
+  getBounds(arr) {
+    const finite = arr.filter(Number.isFinite);
+    if (!finite.length) return { min: 0, max: 1 };
+    return {
+      min: Math.min(...finite),
+      max: Math.max(...finite)
+    };
+  }
+
+  getMax(arr, fallback = 1) {
+    const finite = arr.filter(Number.isFinite);
+    return finite.length ? Math.max(...finite, fallback) : fallback;
+  }
+
+  getXBounds() {
+    return this.getBounds(this.x);
+  }
+
+  getSeriesBounds(axisType = 'left') {
+    const filtered = this.series
+      .filter(s => s.axis === axisType)
+      .flatMap(s => s.data);
+    return this.getBounds(filtered);
+  }
+
+  getSeriesMax(axisType = 'left') {
+    const filtered = this.series
+      .filter(s => s.axis === axisType)
+      .flatMap(s => s.data);
+    return this.getMax(filtered);
+  }
 }
-function rangeBounds(arr, fallback=0){
-  const finite = arr.filter(Number.isFinite);
-  if (!finite.length) return { min: fallback, max: fallback };
-  return { min: Math.min(...finite), max: Math.max(...finite) };
+
+/**
+ * ChartAxis - Handles axis scaling, ticks, and labels
+ */
+class ChartAxis {
+  constructor(config, data, type = 'left') {
+    this.config = config;
+    this.data = data;
+    this.type = type;
+    this.setupScale();
+  }
+
+  setupScale() {
+    const margin = this.type === 'right'
+      ? this.config.axis.rightAxisMargin
+      : this.config.axis.topMargin;
+
+    this.min = 0;
+    this.max = this.data.getSeriesMax(this.type) * margin;
+    this.range = this.max - this.min || 1;
+  }
+
+  scale(value, plotHeight, plotTop, plotBottom) {
+    const normalized = (value - this.min) / this.range;
+    return plotTop + (1 - normalized) * plotBottom;
+  }
+
+  getTicks(count = 5) {
+    const ticks = [];
+    for (let i = 0; i < count; i++) {
+      const frac = 1 - i / (count - 1);
+      ticks.push({
+        value: this.min + frac * this.range,
+        position: i / (count - 1)
+      });
+    }
+    return ticks;
+  }
+
+  formatLabel(value, formatType = 'currency') {
+    if (formatType === 'currency') {
+      return (value / 1000).toFixed(0) + 'k';
+    } else if (formatType === 'rent') {
+      return '$' + value.toFixed(0);
+    }
+    return value.toFixed(0);
+  }
 }
-function maxOr(arr, fallback=1){
-  const finite = arr.filter(Number.isFinite);
-  if (!finite.length) return fallback;
-  return Math.max(...finite, fallback);
+
+/**
+ * ChartGrid - Background grid rendering
+ */
+class ChartGrid {
+  constructor(config) {
+    this.config = config;
+  }
+
+  render(ctx, bounds, dpr) {
+    const { plotLeft, plotRight, plotTop, plotHeight } = bounds;
+
+    ctx.strokeStyle = this.config.colors.grid;
+    ctx.lineWidth = this.config.grid.lineWidth * dpr;
+
+    const divisions = this.config.grid.divisions;
+    for (let i = 0; i <= divisions; i++) {
+      const y = plotTop + i * (plotHeight / divisions);
+      ctx.beginPath();
+      ctx.moveTo(plotLeft, y);
+      ctx.lineTo(plotRight, y);
+      ctx.stroke();
+    }
+  }
 }
 
-function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLabel){
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const { dpr, w, h } = sizeCanvas(canvas);
-  ctx.clearRect(0,0,w,h);
+/**
+ * ChartSeries - Renders data series (lines and points)
+ */
+class ChartSeries {
+  constructor(config) {
+    this.config = config;
+  }
 
-  const padL = 56 * dpr, padR = 50 * dpr, padT = 26 * dpr, padB = 34 * dpr;
+  render(ctx, xValues, yValues, xScale, yScale, color, dpr) {
+    if (xValues.length === 0 || yValues.length === 0) return;
 
-  const xs = sanitizeNumbers(xVals);
-  const left = sanitizeNumbers(leftSeries);
-  const right = sanitizeNumbers(rightSeries);
-
-  const { min: xMin, max: xMax } = rangeBounds(xs, 0);
-  const xSpan = xMax - xMin || 1;
-
-  const yLMin = 0;
-  const yLMax = maxOr(left, 1) * 1.06;
-  const yRMin = 0;
-  const yRMax = maxOr(right, 1) * 1.16;
-
-  const yLSpan = yLMax - yLMin || 1;
-  const yRSpan = yRMax - yRMin || 1;
-
-  const xScale = (x) => padL + ((x - xMin) / xSpan) * (w - padL - padR);
-  const yScaleL = (y) => padT + (1 - ((y - yLMin) / yLSpan)) * (h - padT - padB);
-  const yScaleR = (y) => padT + (1 - ((y - yRMin) / yRSpan)) * (h - padT - padB);
-
-  ctx.strokeStyle = "rgba(27,67,50,.14)";
-  ctx.lineWidth = 1 * dpr;
-  for(let i=0;i<=4;i++){
-    const y = padT + i * ((h - padT - padB)/4);
+    // Draw line
+    ctx.strokeStyle = color;
+    ctx.lineWidth = this.config.line.width * dpr;
     ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(w - padR, y);
+
+    xValues.forEach((x, idx) => {
+      const px = xScale(x);
+      const py = yScale(yValues[idx]);
+      if (idx === 0) {
+        ctx.moveTo(px, py);
+      } else {
+        ctx.lineTo(px, py);
+      }
+    });
     ctx.stroke();
+
+    // Draw points
+    ctx.fillStyle = color;
+    xValues.forEach((x, idx) => {
+      const px = xScale(x);
+      const py = yScale(yValues[idx]);
+      ctx.beginPath();
+      ctx.arc(px, py, this.config.line.pointRadius * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
-
-  ctx.fillStyle = "rgba(16,20,18,.65)";
-  ctx.font = `${12*dpr}px ${getComputedStyle(document.body).fontFamily}`;
-
-  for(let i=0;i<=4;i++){
-    const frac = 1 - i/4;
-    const v = yLMin + frac * (yLMax - yLMin);
-    const y = padT + i * ((h - padT - padB)/4);
-    ctx.fillText((v/1000).toFixed(0) + "k", 8*dpr, y + 4*dpr);
-  }
-
-  ctx.textAlign = "right";
-  for(let i=0;i<=4;i++){
-    const frac = 1 - i/4;
-    const v = yRMin + frac * (yRMax - yRMin);
-    const y = padT + i * ((h - padT - padB)/4);
-    const label = (rightLabel === "Loan" || rightLabel === "Value") ? ((v/1000).toFixed(0) + "k") : ("$" + v.toFixed(0));
-    ctx.fillText(label, w - 8*dpr, y + 4*dpr);
-  }
-  ctx.textAlign = "left";
-
-  xs.forEach((x) => {
-    const px = xScale(x);
-    const label = "Y" + x;
-    const tw = ctx.measureText(label).width;
-    ctx.fillText(label, px - tw/2, h - 12*dpr);
-  });
-
-  ctx.strokeStyle = "#1B4332";
-  ctx.lineWidth = 2.5 * dpr;
-  ctx.beginPath();
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScaleL(left[idx]);
-    if(idx === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  });
-  ctx.stroke();
-
-  ctx.fillStyle = "#1B4332";
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScaleL(left[idx]);
-    ctx.beginPath();
-    ctx.arc(px, py, 3.5*dpr, 0, Math.PI*2);
-    ctx.fill();
-  });
-
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 2.5 * dpr;
-  ctx.beginPath();
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScaleR(right[idx]);
-    if(idx === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  });
-  ctx.stroke();
-
-  ctx.fillStyle = "#D4AF37";
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScaleR(right[idx]);
-    ctx.beginPath();
-    ctx.arc(px, py, 3.5*dpr, 0, Math.PI*2);
-    ctx.fill();
-  });
-
-  const lx = padL, ly = padT - 10*dpr;
-  ctx.fillStyle = "rgba(16,20,18,.75)";
-  ctx.fillText(leftLabel, lx + 18*dpr, ly);
-  ctx.fillText(rightLabel, lx + 112*dpr, ly);
-
-  ctx.fillStyle = "#1B4332";
-  ctx.fillRect(lx, ly - 10*dpr, 12*dpr, 12*dpr);
-  ctx.fillStyle = "#D4AF37";
-  ctx.fillRect(lx + 92*dpr, ly - 10*dpr, 12*dpr, 12*dpr);
 }
 
-function drawSingle(canvas, xVals, series, label){
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const { dpr, w, h } = sizeCanvas(canvas);
-  ctx.clearRect(0,0,w,h);
-
-  const padL = 56 * dpr, padR = 50 * dpr, padT = 26 * dpr, padB = 34 * dpr;
-
-  const xs = sanitizeNumbers(xVals);
-  const ys = sanitizeNumbers(series);
-
-  const yMin = 0;
-  const yMax = maxOr(ys, 1) * 1.06;
-
-  const { min: xMin, max: xMax } = rangeBounds(xs, 0);
-  const xSpan = xMax - xMin || 1;
-  const ySpan = yMax - yMin || 1;
-
-  const xScale = (x) => padL + ((x - xMin) / xSpan) * (w - padL - padR);
-  const yScale = (y) => padT + (1 - ((y - yMin) / ySpan)) * (h - padT - padB);
-
-  ctx.strokeStyle = "rgba(27,67,50,.14)";
-  ctx.lineWidth = 1 * dpr;
-  for(let i=0;i<=4;i++){
-    const y = padT + i * ((h - padT - padB)/4);
-    ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(w - padR, y);
-    ctx.stroke();
+/**
+ * ChartLegend - Legend rendering
+ */
+class ChartLegend {
+  constructor(config) {
+    this.config = config;
   }
 
-  ctx.fillStyle = "rgba(16,20,18,.65)";
-  ctx.font = `${12*dpr}px ${getComputedStyle(document.body).fontFamily}`;
+  render(ctx, series, bounds, dpr) {
+    const { plotLeft, plotTop } = bounds;
+    const { boxSize, spacing, offset } = this.config.legend;
 
-  for(let i=0;i<=4;i++){
-    const frac = 1 - i/4;
-    const v = yMin + frac * (yMax - yMin);
-    const y = padT + i * ((h - padT - padB)/4);
-    ctx.fillText((v/1000).toFixed(0) + "k", 8*dpr, y + 4*dpr);
+    const lx = plotLeft;
+    const ly = plotTop - offset.y * dpr;
+
+    ctx.fillStyle = this.config.colors.legendLabel;
+    ctx.textAlign = 'left';
+
+    series.forEach((s, idx) => {
+      const xPos = lx + idx * spacing * dpr;
+
+      // Draw color box
+      ctx.fillStyle = s.color;
+      ctx.fillRect(xPos, ly - boxSize * dpr, boxSize * dpr, boxSize * dpr);
+
+      // Draw label
+      ctx.fillStyle = this.config.colors.legendLabel;
+      ctx.fillText(s.label, xPos + offset.x * dpr, ly);
+    });
+  }
+}
+
+/**
+ * ChartRenderer - Main chart orchestrator
+ */
+class ChartRenderer {
+  constructor(canvas, config = null) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.config = config || new ChartConfig();
+    this.grid = new ChartGrid(this.config);
+    this.seriesRenderer = new ChartSeries(this.config);
+    this.legend = new ChartLegend(this.config);
   }
 
-  xs.forEach((x) => {
-    const px = xScale(x);
-    const labelX = "Y" + x;
-    const tw = ctx.measureText(labelX).width;
-    ctx.fillText(labelX, px - tw/2, h - 12*dpr);
-  });
+  setupCanvas() {
+    const dpr = this.config.getDPR();
+    const rect = this.canvas.getBoundingClientRect();
+    const cssW = Math.max(320, rect.width || 0);
+    const cssH = Math.max(140, parseInt(this.canvas.getAttribute('height') || '160', 10));
 
-  ctx.strokeStyle = "#1B4332";
-  ctx.lineWidth = 2.5 * dpr;
-  ctx.beginPath();
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScale(ys[idx]);
-    if(idx === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  });
-  ctx.stroke();
+    this.canvas.width = Math.floor(cssW * dpr);
+    this.canvas.height = Math.floor(cssH * dpr);
 
-  ctx.fillStyle = "#1B4332";
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScale(ys[idx]);
-    ctx.beginPath();
-    ctx.arc(px, py, 3.5*dpr, 0, Math.PI*2);
-    ctx.fill();
-  });
+    return { dpr, w: this.canvas.width, h: this.canvas.height };
+  }
 
-  const lx = padL, ly = padT - 10*dpr;
-  ctx.fillStyle = "rgba(16,20,18,.75)";
-  ctx.fillText(label, lx + 18*dpr, ly);
-  ctx.fillStyle = "#1B4332";
-  ctx.fillRect(lx, ly - 10*dpr, 12*dpr, 12*dpr);
+  getBounds(w, h, dpr) {
+    const pad = this.config.padding;
+    return {
+      plotLeft: pad.left * dpr,
+      plotRight: w - pad.right * dpr,
+      plotTop: pad.top * dpr,
+      plotBottom: h - pad.bottom * dpr,
+      plotWidth: w - (pad.left + pad.right) * dpr,
+      plotHeight: h - (pad.top + pad.bottom) * dpr
+    };
+  }
+
+  createScaleFunctions(data, bounds) {
+    const xBounds = data.getXBounds();
+    const xRange = xBounds.max - xBounds.min || 1;
+
+    const xScale = (x) => {
+      return bounds.plotLeft + ((x - xBounds.min) / xRange) * bounds.plotWidth;
+    };
+
+    return { xBounds, xScale };
+  }
+
+  renderAxes(data, bounds, dpr, hasRightAxis = false) {
+    const leftAxis = new ChartAxis(this.config, data, 'left');
+    const rightAxis = hasRightAxis ? new ChartAxis(this.config, data, 'right') : null;
+
+    // Setup font
+    this.ctx.font = `${this.config.font.size * dpr}px ${this.config.font.family}`;
+    this.ctx.fillStyle = this.config.colors.label;
+
+    // Left axis labels
+    const leftTicks = leftAxis.getTicks(this.config.grid.divisions + 1);
+    this.ctx.textAlign = 'left';
+    leftTicks.forEach(tick => {
+      const y = bounds.plotTop + tick.position * bounds.plotHeight;
+      const leftSeries = data.series.find(s => s.axis === 'left');
+      const label = leftAxis.formatLabel(tick.value, leftSeries?.formatType);
+      this.ctx.fillText(label, 8 * dpr, y + 4 * dpr);
+    });
+
+    // Right axis labels
+    if (rightAxis) {
+      this.ctx.textAlign = 'right';
+      const rightTicks = rightAxis.getTicks(this.config.grid.divisions + 1);
+      rightTicks.forEach(tick => {
+        const y = bounds.plotTop + tick.position * bounds.plotHeight;
+        const rightSeries = data.series.find(s => s.axis === 'right');
+        const label = rightAxis.formatLabel(tick.value, rightSeries?.formatType);
+        this.ctx.fillText(label, bounds.plotRight + 42 * dpr, y + 4 * dpr);
+      });
+    }
+
+    return { leftAxis, rightAxis };
+  }
+
+  renderXLabels(xValues, xScale, bounds, dpr) {
+    this.ctx.fillStyle = this.config.colors.label;
+    this.ctx.textAlign = 'center';
+
+    xValues.forEach(x => {
+      const px = xScale(x);
+      const label = 'Y' + x;
+      this.ctx.fillText(label, px, bounds.plotBottom + 22 * dpr);
+    });
+  }
+
+  render(xValues, series) {
+    if (!this.ctx) return;
+
+    // Setup
+    const { dpr, w, h } = this.setupCanvas();
+    this.ctx.clearRect(0, 0, w, h);
+
+    // Create data model
+    const data = new ChartData(xValues, series);
+    const bounds = this.getBounds(w, h, dpr);
+
+    // Render grid
+    this.grid.render(this.ctx, bounds, dpr);
+
+    // Check if we have right axis
+    const hasRightAxis = series.some(s => s.axis === 'right');
+
+    // Render axes
+    const { leftAxis, rightAxis } = this.renderAxes(data, bounds, dpr, hasRightAxis);
+
+    // Create scale functions
+    const { xScale } = this.createScaleFunctions(data, bounds);
+
+    // Render X labels
+    this.renderXLabels(data.x, xScale, bounds, dpr);
+
+    // Render series
+    data.series.forEach(s => {
+      const axis = s.axis === 'right' && rightAxis ? rightAxis : leftAxis;
+      const yScale = (y) => axis.scale(y, bounds.plotHeight, bounds.plotTop, bounds.plotHeight);
+      this.seriesRenderer.render(this.ctx, data.x, s.data, xScale, yScale, s.color, dpr);
+    });
+
+    // Render legend
+    this.legend.render(this.ctx, data.series, bounds, dpr);
+  }
+}
+
+// ============================================================================
+// PUBLIC API - Simplified chart drawing functions
+// ============================================================================
+
+function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLabel) {
+  const renderer = new ChartRenderer(canvas);
+
+  const series = [
+    {
+      data: leftSeries,
+      label: leftLabel,
+      color: '#1B4332',
+      axis: 'left',
+      formatType: 'currency'
+    },
+    {
+      data: rightSeries,
+      label: rightLabel,
+      color: '#D4AF37',
+      axis: 'right',
+      formatType: (rightLabel === 'Loan' || rightLabel === 'Value') ? 'currency' : 'rent'
+    }
+  ];
+
+  renderer.render(xVals, series);
+}
+
+function drawSingle(canvas, xVals, series, label) {
+  const renderer = new ChartRenderer(canvas);
+
+  const seriesConfig = [
+    {
+      data: series,
+      label: label,
+      color: '#1B4332',
+      axis: 'left',
+      formatType: 'currency'
+    }
+  ];
+
+  renderer.render(xVals, seriesConfig);
 }
 
 function render(){
