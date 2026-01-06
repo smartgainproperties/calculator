@@ -958,9 +958,7 @@ function renderProjection(baseComputed, baseInputs){
     balances.push(bal);
     equities.push(eq);
 
-    if (y !== 0){
-      rows.push({y, v, bal, eq, rw, cash});
-    }
+    rows.push({y, v, bal, eq, rw, cash});
   }
 
   $("projectionRows").innerHTML = rows.map(row => `
