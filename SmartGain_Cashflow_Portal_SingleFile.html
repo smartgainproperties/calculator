@@ -456,10 +456,6 @@ input:hover, select:hover{
 }
 
   </style>
-
-  <!-- PDF Export Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
 <body>
@@ -1390,68 +1386,8 @@ $("chartView").addEventListener("change", render);
 
 $("btnReset").addEventListener("click", () => setForm(sample));
 
-$("btnExportPDF").addEventListener("click", async () => {
-  const btn = $("btnExportPDF");
-  const originalText = btn.textContent;
-  btn.textContent = "Generating PDF...";
-  btn.disabled = true;
-
-  try {
-    // Temporarily hide action buttons for cleaner PDF
-    const actions = document.querySelector(".actions");
-    const originalDisplay = actions.style.display;
-    actions.style.display = "none";
-
-    // Get the inputs for filename
-    const inputs = getInputs();
-    const address = inputs.address ? inputs.address.substring(0, 30).replace(/[^a-z0-9]/gi, '_') : 'Property';
-    const filename = `SmartGain_Cashflow_${address}_${new Date().toISOString().split('T')[0]}.pdf`;
-
-    // Capture the page
-    const wrap = document.querySelector(".wrap");
-    const canvas = await html2canvas(wrap, {
-      scale: 2,
-      logging: false,
-      backgroundColor: '#F1EDEB',
-      windowWidth: 1200
-    });
-
-    // Restore action buttons
-    actions.style.display = originalDisplay;
-
-    // Create PDF
-    const { jsPDF } = window.jspdf;
-    const imgWidth = 210; // A4 width in mm
-    const pageHeight = 297; // A4 height in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    let position = 0;
-
-    // Add image to PDF
-    const imgData = canvas.toDataURL('image/png');
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-
-    // Add new pages if content is too long
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-    }
-
-    // Download the PDF
-    pdf.save(filename);
-
-  } catch (error) {
-    console.error('PDF generation failed:', error);
-    alert('Failed to generate PDF. Please try again or use your browser\'s print function.');
-  } finally {
-    btn.textContent = originalText;
-    btn.disabled = false;
-  }
+$("btnExportPDF").addEventListener("click", () => {
+  window.print();
 });
 
 $("btnExport").addEventListener("click", async () => {
