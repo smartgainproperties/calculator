@@ -1082,7 +1082,7 @@ function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLa
   const { dpr, w, h } = sizeCanvas(canvas);
   ctx.clearRect(0,0,w,h);
 
-  const padL = 56 * dpr, padR = 20 * dpr, padT = 26 * dpr, padB = 34 * dpr;
+  const padL = 56 * dpr, padR = 60 * dpr, padT = 26 * dpr, padB = 34 * dpr;
 
   const xs = sanitizeNumbers(xVals);
   const left = sanitizeNumbers(leftSeries);
@@ -1129,7 +1129,7 @@ function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLa
     const y = padT + i * ((h - padT - padB)/4);
     const label = (rightLabel === "Loan" || rightLabel === "Value") ? ((v/1000).toFixed(0) + "k") : ("$" + v.toFixed(0));
     const tw = ctx.measureText(label).width;
-    ctx.fillText(label, (w - padR - tw), y + 4*dpr);
+    ctx.fillText(label, w - padR + 8*dpr, y + 4*dpr);
   }
 
   xs.forEach((x) => {
@@ -1196,7 +1196,7 @@ function drawSingle(canvas, xVals, series, label){
   const { dpr, w, h } = sizeCanvas(canvas);
   ctx.clearRect(0,0,w,h);
 
-  const padL = 56 * dpr, padR = 20 * dpr, padT = 26 * dpr, padB = 34 * dpr;
+  const padL = 56 * dpr, padR = 60 * dpr, padT = 26 * dpr, padB = 34 * dpr;
 
   const xs = sanitizeNumbers(xVals);
   const ys = sanitizeNumbers(series);
