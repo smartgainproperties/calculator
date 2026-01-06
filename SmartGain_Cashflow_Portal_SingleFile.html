@@ -396,10 +396,199 @@ input:hover, select:hover{
 .tiny{ font-size: 11px; color: var(--muted); font-family: var(--mono); }
 .hr{ height: 1px; background: rgba(27,67,50,.12); margin: 10px 0 0; }
 
+/* Warning Modal Styles */
+.modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 20, 18, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.modal-overlay.active{
+  opacity: 1;
+  pointer-events: all;
+}
+.modal-dialog{
+  background: var(--card);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius);
+  max-width: 580px;
+  width: 100%;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.25),
+    0 8px 16px rgba(27, 67, 50, 0.15),
+    0 0 0 1px rgba(212, 175, 55, 0.3);
+  position: relative;
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+.modal-overlay.active .modal-dialog{
+  transform: scale(1);
+}
+.modal-dialog::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--green) 0%, var(--gold) 100%);
+}
+.modal-header{
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(27, 67, 50, 0.04), transparent);
+}
+.modal-header h3{
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  font-weight: 800;
+  font-family: var(--font-head);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.modal-icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.20), rgba(212, 175, 55, 0.10));
+  border: 2px solid rgba(212, 175, 55, 0.40);
+  font-size: 18px;
+  color: var(--gold);
+}
+.modal-subtitle{
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.modal-body{
+  padding: 20px 24px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+}
+.modal-body p{
+  margin: 0 0 14px 0;
+}
+.modal-body p:last-child{
+  margin-bottom: 0;
+}
+.modal-body strong{
+  font-weight: 700;
+  color: var(--green);
+}
+.modal-body ul{
+  margin: 12px 0;
+  padding-left: 20px;
+}
+.modal-body ul li{
+  margin-bottom: 8px;
+}
+.modal-footer{
+  padding: 16px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(0deg, rgba(27, 67, 50, 0.02), transparent);
+}
+.modal-btn{
+  background: linear-gradient(135deg, var(--green) 0%, #0f2a1f 50%, var(--gold) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: white;
+  padding: 13px 28px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.05s ease, filter 0.2s ease, box-shadow 0.2s ease;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: var(--font-body);
+  letter-spacing: 0.3px;
+  box-shadow:
+    0 2px 8px rgba(27, 67, 50, 0.15),
+    0 8px 24px rgba(212, 175, 55, 0.20);
+  position: relative;
+  overflow: hidden;
+}
+.modal-btn:hover{
+  filter: brightness(1.05);
+  box-shadow:
+    0 4px 12px rgba(27, 67, 50, 0.18),
+    0 12px 32px rgba(212, 175, 55, 0.25);
+}
+.modal-btn:active{
+  transform: translateY(1px);
+}
+.modal-btn::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transition: left 0.3s ease;
+}
+.modal-btn:hover::before{
+  left: 100%;
+}
+@media (max-width: 640px){
+  .modal-dialog{
+    max-width: 100%;
+  }
+  .modal-header h3{
+    font-size: 19px;
+  }
+  .modal-body{
+    font-size: 13px;
+  }
+}
+
   </style>
 </head>
 
 <body>
+  <!-- Data Warning Modal -->
+  <div class="modal-overlay" id="warningModal" role="dialog" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+    <div class="modal-dialog" role="document">
+      <div class="modal-header">
+        <h3 id="modalTitle">
+          <span class="modal-icon" aria-hidden="true">⚠</span>
+          Important Disclaimer
+        </h3>
+        <p class="modal-subtitle">Please read before proceeding</p>
+      </div>
+      <div class="modal-body" id="modalDesc">
+        <p><strong>This calculator provides estimates only.</strong> The data, calculations, and projections shown in this portal are for informational and illustrative purposes and should not be relied upon as financial, investment, or legal advice.</p>
+        <p>Please note:</p>
+        <ul>
+          <li>Property values, market conditions, and financial metrics may vary and could be outdated</li>
+          <li>Calculations are based on simplified assumptions and may not reflect actual costs or returns</li>
+          <li>This tool does not constitute professional financial advice or recommendations</li>
+          <li>Always consult with qualified financial, legal, and tax professionals before making investment decisions</li>
+        </ul>
+        <p><strong>By proceeding, you acknowledge that you use this calculator at your own risk and that Smart Gain Properties assumes no liability for decisions made based on this information.</strong></p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn" id="acceptWarning" aria-label="Accept and continue">I Understand &amp; Accept</button>
+      </div>
+    </div>
+  </div>
+
   <div class="pattern" aria-hidden="true"></div>
 
   <div class="wrap">
@@ -1017,7 +1206,7 @@ function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLa
   const { dpr, w, h } = sizeCanvas(canvas);
   ctx.clearRect(0,0,w,h);
 
-  const padL = 56 * dpr, padR = 70 * dpr, padT = 26 * dpr, padB = 34 * dpr;
+  const padL = 56 * dpr, padR = 50 * dpr, padT = 26 * dpr, padB = 34 * dpr;
 
   const xs = sanitizeNumbers(xVals);
   const left = sanitizeNumbers(leftSeries);
@@ -1058,14 +1247,15 @@ function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLa
     ctx.fillText((v/1000).toFixed(0) + "k", 8*dpr, y + 4*dpr);
   }
 
+  ctx.textAlign = "right";
   for(let i=0;i<=4;i++){
     const frac = 1 - i/4;
     const v = yRMin + frac * (yRMax - yRMin);
     const y = padT + i * ((h - padT - padB)/4);
     const label = (rightLabel === "Loan" || rightLabel === "Value") ? ((v/1000).toFixed(0) + "k") : ("$" + v.toFixed(0));
-    const tw = ctx.measureText(label).width;
-    ctx.fillText(label, (w - padR - tw), y + 4*dpr);
+    ctx.fillText(label, w - 8*dpr, y + 4*dpr);
   }
+  ctx.textAlign = "left";
 
   xs.forEach((x) => {
     const px = xScale(x);
@@ -1131,7 +1321,7 @@ function drawSingle(canvas, xVals, series, label){
   const { dpr, w, h } = sizeCanvas(canvas);
   ctx.clearRect(0,0,w,h);
 
-  const padL = 56 * dpr, padR = 70 * dpr, padT = 26 * dpr, padB = 34 * dpr;
+  const padL = 56 * dpr, padR = 50 * dpr, padT = 26 * dpr, padB = 34 * dpr;
 
   const xs = sanitizeNumbers(xVals);
   const ys = sanitizeNumbers(series);
@@ -1334,6 +1524,42 @@ $("btnExport").addEventListener("click", async () => {
 });
 
 window.addEventListener("load", () => setTimeout(() => setForm(sample), 0));
+
+// Warning Modal Management
+(function initWarningModal(){
+  const STORAGE_KEY = 'smartgain_disclaimer_accepted';
+  const modal = $('warningModal');
+  const acceptBtn = $('acceptWarning');
+
+  // Check if user has already accepted the disclaimer
+  const hasAccepted = localStorage.getItem(STORAGE_KEY);
+
+  // Show modal if not yet accepted
+  if (!hasAccepted) {
+    // Small delay to ensure page is loaded and animation works smoothly
+    setTimeout(() => {
+      modal.classList.add('active');
+    }, 300);
+  }
+
+  // Handle accept button click
+  acceptBtn.addEventListener('click', () => {
+    // Store acceptance in localStorage
+    localStorage.setItem(STORAGE_KEY, 'true');
+
+    // Hide modal with animation
+    modal.classList.remove('active');
+  });
+
+  // Prevent closing modal by clicking overlay (user must accept)
+  modal.addEventListener('click', (e) => {
+    // Only allow closing by clicking the accept button
+    if (e.target === modal) {
+      // Optional: could add a subtle shake animation here to indicate they must accept
+      e.stopPropagation();
+    }
+  });
+})();
 
   </script>
 </body>
