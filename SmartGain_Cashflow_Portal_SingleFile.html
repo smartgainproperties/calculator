@@ -1200,195 +1200,301 @@ function maxOr(arr, fallback=1){
   return Math.max(...finite, fallback);
 }
 
-function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLabel){
+// ============================================================================
+// CHART RENDERING SYSTEM
+// Clean, modular architecture for portfolio projection charts
+// ============================================================================
+
+// Chart configuration - centralized settings for easy maintenance
+const CHART_CONFIG = {
+  padding: { left: 56, right: 55, top: 26, bottom: 34 },
+  colors: {
+    primary: '#1B4332',    // Smart Green
+    secondary: '#D4AF37',  // Smart Gold
+    grid: 'rgba(27,67,50,.14)',
+    text: 'rgba(16,20,18,.65)',
+    textStrong: 'rgba(16,20,18,.75)'
+  },
+  lines: {
+    dataWidth: 2.5,
+    gridWidth: 1
+  },
+  markers: {
+    radius: 3.5
+  },
+  fonts: {
+    size: 12
+  },
+  grid: {
+    divisions: 4  // Number of horizontal grid lines
+  }
+};
+
+/**
+ * Base chart renderer - contains common chart drawing logic
+ * Used by both dual-axis and single-axis charts
+ */
+function createChartRenderer(canvas, xValues, config = CHART_CONFIG) {
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  if (!ctx) return null;
+
   const { dpr, w, h } = sizeCanvas(canvas);
-  ctx.clearRect(0,0,w,h);
+  ctx.clearRect(0, 0, w, h);
 
-  const padL = 56 * dpr, padR = 50 * dpr, padT = 26 * dpr, padB = 34 * dpr;
+  // Calculate padding in device pixels
+  const pad = {
+    left: config.padding.left * dpr,
+    right: config.padding.right * dpr,
+    top: config.padding.top * dpr,
+    bottom: config.padding.bottom * dpr
+  };
 
-  const xs = sanitizeNumbers(xVals);
-  const left = sanitizeNumbers(leftSeries);
-  const right = sanitizeNumbers(rightSeries);
+  // Chart dimensions (excluding padding)
+  const chartWidth = w - pad.left - pad.right;
+  const chartHeight = h - pad.top - pad.bottom;
 
-  const { min: xMin, max: xMax } = rangeBounds(xs, 0);
-  const xSpan = xMax - xMin || 1;
+  // Sanitize and prepare x-axis data
+  const xData = sanitizeNumbers(xValues);
+  const { min: xMin, max: xMax } = rangeBounds(xData, 0);
+  const xSpan = Math.max(xMax - xMin, 1);
 
-  const yLMin = 0;
-  const yLMax = maxOr(left, 1) * 1.06;
-  const yRMin = 0;
-  const yRMax = maxOr(right, 1) * 1.16;
+  // X-axis scale function
+  const xScale = (x) => pad.left + ((x - xMin) / xSpan) * chartWidth;
 
-  const yLSpan = yLMax - yLMin || 1;
-  const yRSpan = yRMax - yRMin || 1;
+  // Setup font for text rendering
+  const fontSize = config.fonts.size * dpr;
+  ctx.font = `${fontSize}px ${getComputedStyle(document.body).fontFamily}`;
 
-  const xScale = (x) => padL + ((x - xMin) / xSpan) * (w - padL - padR);
-  const yScaleL = (y) => padT + (1 - ((y - yLMin) / yLSpan)) * (h - padT - padB);
-  const yScaleR = (y) => padT + (1 - ((y - yRMin) / yRSpan)) * (h - padT - padB);
-
-  ctx.strokeStyle = "rgba(27,67,50,.14)";
-  ctx.lineWidth = 1 * dpr;
-  for(let i=0;i<=4;i++){
-    const y = padT + i * ((h - padT - padB)/4);
-    ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(w - padR, y);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = "rgba(16,20,18,.65)";
-  ctx.font = `${12*dpr}px ${getComputedStyle(document.body).fontFamily}`;
-
-  for(let i=0;i<=4;i++){
-    const frac = 1 - i/4;
-    const v = yLMin + frac * (yLMax - yLMin);
-    const y = padT + i * ((h - padT - padB)/4);
-    ctx.fillText((v/1000).toFixed(0) + "k", 8*dpr, y + 4*dpr);
-  }
-
-  ctx.textAlign = "right";
-  for(let i=0;i<=4;i++){
-    const frac = 1 - i/4;
-    const v = yRMin + frac * (yRMax - yRMin);
-    const y = padT + i * ((h - padT - padB)/4);
-    const label = (rightLabel === "Loan" || rightLabel === "Value") ? ((v/1000).toFixed(0) + "k") : ("$" + v.toFixed(0));
-    ctx.fillText(label, w - 8*dpr, y + 4*dpr);
-  }
-  ctx.textAlign = "left";
-
-  xs.forEach((x) => {
-    const px = xScale(x);
-    const label = "Y" + x;
-    const tw = ctx.measureText(label).width;
-    ctx.fillText(label, px - tw/2, h - 12*dpr);
-  });
-
-  ctx.strokeStyle = "#1B4332";
-  ctx.lineWidth = 2.5 * dpr;
-  ctx.beginPath();
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScaleL(left[idx]);
-    if(idx === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  });
-  ctx.stroke();
-
-  ctx.fillStyle = "#1B4332";
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScaleL(left[idx]);
-    ctx.beginPath();
-    ctx.arc(px, py, 3.5*dpr, 0, Math.PI*2);
-    ctx.fill();
-  });
-
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 2.5 * dpr;
-  ctx.beginPath();
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScaleR(right[idx]);
-    if(idx === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  });
-  ctx.stroke();
-
-  ctx.fillStyle = "#D4AF37";
-  xs.forEach((x, idx) => {
-    const px = xScale(x);
-    const py = yScaleR(right[idx]);
-    ctx.beginPath();
-    ctx.arc(px, py, 3.5*dpr, 0, Math.PI*2);
-    ctx.fill();
-  });
-
-  const lx = padL, ly = padT - 10*dpr;
-  ctx.fillStyle = "rgba(16,20,18,.75)";
-  ctx.fillText(leftLabel, lx + 18*dpr, ly);
-  ctx.fillText(rightLabel, lx + 112*dpr, ly);
-
-  ctx.fillStyle = "#1B4332";
-  ctx.fillRect(lx, ly - 10*dpr, 12*dpr, 12*dpr);
-  ctx.fillStyle = "#D4AF37";
-  ctx.fillRect(lx + 92*dpr, ly - 10*dpr, 12*dpr, 12*dpr);
+  return {
+    ctx, dpr, w, h, pad, chartWidth, chartHeight,
+    xData, xMin, xMax, xSpan, xScale, config
+  };
 }
 
-function drawSingle(canvas, xVals, series, label){
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const { dpr, w, h } = sizeCanvas(canvas);
-  ctx.clearRect(0,0,w,h);
+/**
+ * Draw horizontal grid lines
+ */
+function drawGrid(renderer) {
+  const { ctx, dpr, pad, chartWidth, config } = renderer;
 
-  const padL = 56 * dpr, padR = 50 * dpr, padT = 26 * dpr, padB = 34 * dpr;
+  ctx.strokeStyle = config.colors.grid;
+  ctx.lineWidth = config.lines.gridWidth * dpr;
 
-  const xs = sanitizeNumbers(xVals);
-  const ys = sanitizeNumbers(series);
+  for (let i = 0; i <= config.grid.divisions; i++) {
+    const y = pad.top + i * (renderer.chartHeight / config.grid.divisions);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + chartWidth, y);
+    ctx.stroke();
+  }
+}
 
-  const yMin = 0;
-  const yMax = maxOr(ys, 1) * 1.06;
-
-  const { min: xMin, max: xMax } = rangeBounds(xs, 0);
-  const xSpan = xMax - xMin || 1;
+/**
+ * Draw Y-axis labels on the left side
+ */
+function drawLeftAxisLabels(renderer, yMin, yMax) {
+  const { ctx, dpr, pad, config } = renderer;
   const ySpan = yMax - yMin || 1;
 
-  const xScale = (x) => padL + ((x - xMin) / xSpan) * (w - padL - padR);
-  const yScale = (y) => padT + (1 - ((y - yMin) / ySpan)) * (h - padT - padB);
+  ctx.fillStyle = config.colors.text;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
 
-  ctx.strokeStyle = "rgba(27,67,50,.14)";
-  ctx.lineWidth = 1 * dpr;
-  for(let i=0;i<=4;i++){
-    const y = padT + i * ((h - padT - padB)/4);
-    ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(w - padR, y);
-    ctx.stroke();
+  for (let i = 0; i <= config.grid.divisions; i++) {
+    const fraction = 1 - (i / config.grid.divisions);
+    const value = yMin + fraction * ySpan;
+    const y = pad.top + i * (renderer.chartHeight / config.grid.divisions);
+    const label = (value / 1000).toFixed(0) + "k";
+    ctx.fillText(label, 8 * dpr, y);
+  }
+}
+
+/**
+ * Draw Y-axis labels on the right side
+ */
+function drawRightAxisLabels(renderer, yMin, yMax, labelType) {
+  const { ctx, dpr, w, pad, config } = renderer;
+  const ySpan = yMax - yMin || 1;
+
+  ctx.fillStyle = config.colors.text;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+
+  for (let i = 0; i <= config.grid.divisions; i++) {
+    const fraction = 1 - (i / config.grid.divisions);
+    const value = yMin + fraction * ySpan;
+    const y = pad.top + i * (renderer.chartHeight / config.grid.divisions);
+
+    // Format label based on type (currency values vs thousands)
+    const label = (labelType === 'Loan' || labelType === 'Value')
+      ? (value / 1000).toFixed(0) + "k"
+      : "$" + value.toFixed(0);
+
+    ctx.fillText(label, w - 8 * dpr, y);
   }
 
-  ctx.fillStyle = "rgba(16,20,18,.65)";
-  ctx.font = `${12*dpr}px ${getComputedStyle(document.body).fontFamily}`;
+  ctx.textAlign = 'left';  // Reset to default
+}
 
-  for(let i=0;i<=4;i++){
-    const frac = 1 - i/4;
-    const v = yMin + frac * (yMax - yMin);
-    const y = padT + i * ((h - padT - padB)/4);
-    ctx.fillText((v/1000).toFixed(0) + "k", 8*dpr, y + 4*dpr);
-  }
+/**
+ * Draw X-axis labels at the bottom
+ */
+function drawXAxisLabels(renderer) {
+  const { ctx, dpr, h, pad, xData, xScale, config } = renderer;
 
-  xs.forEach((x) => {
+  ctx.fillStyle = config.colors.text;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  xData.forEach((x) => {
     const px = xScale(x);
-    const labelX = "Y" + x;
-    const tw = ctx.measureText(labelX).width;
-    ctx.fillText(labelX, px - tw/2, h - 12*dpr);
+    const label = "Y" + x;
+    ctx.fillText(label, px, h - 12 * dpr);
   });
 
-  ctx.strokeStyle = "#1B4332";
-  ctx.lineWidth = 2.5 * dpr;
+  ctx.textAlign = 'left';  // Reset to default
+}
+
+/**
+ * Draw a data series line with markers
+ */
+function drawDataSeries(renderer, yValues, yScale, color) {
+  const { ctx, dpr, xData, xScale, config } = renderer;
+  const yData = sanitizeNumbers(yValues);
+
+  // Draw line
+  ctx.strokeStyle = color;
+  ctx.lineWidth = config.lines.dataWidth * dpr;
   ctx.beginPath();
-  xs.forEach((x, idx) => {
+
+  xData.forEach((x, idx) => {
     const px = xScale(x);
-    const py = yScale(ys[idx]);
-    if(idx === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
+    const py = yScale(yData[idx]);
+    if (idx === 0) {
+      ctx.moveTo(px, py);
+    } else {
+      ctx.lineTo(px, py);
+    }
   });
+
   ctx.stroke();
 
-  ctx.fillStyle = "#1B4332";
-  xs.forEach((x, idx) => {
+  // Draw markers
+  ctx.fillStyle = color;
+  xData.forEach((x, idx) => {
     const px = xScale(x);
-    const py = yScale(ys[idx]);
+    const py = yScale(yData[idx]);
     ctx.beginPath();
-    ctx.arc(px, py, 3.5*dpr, 0, Math.PI*2);
+    ctx.arc(px, py, config.markers.radius * dpr, 0, Math.PI * 2);
     ctx.fill();
   });
-
-  const lx = padL, ly = padT - 10*dpr;
-  ctx.fillStyle = "rgba(16,20,18,.75)";
-  ctx.fillText(label, lx + 18*dpr, ly);
-  ctx.fillStyle = "#1B4332";
-  ctx.fillRect(lx, ly - 10*dpr, 12*dpr, 12*dpr);
 }
+
+/**
+ * Draw legend (color keys and labels)
+ */
+function drawLegend(renderer, items) {
+  const { ctx, dpr, pad, config } = renderer;
+
+  const legendY = pad.top - 10 * dpr;
+  const boxSize = 12 * dpr;
+  let x = pad.left;
+
+  ctx.fillStyle = config.colors.textStrong;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+
+  items.forEach((item, index) => {
+    // Draw color box
+    ctx.fillStyle = item.color;
+    ctx.fillRect(x, legendY - boxSize / 2, boxSize, boxSize);
+
+    // Draw label
+    ctx.fillStyle = config.colors.textStrong;
+    ctx.fillText(item.label, x + boxSize + 6 * dpr, legendY);
+
+    // Move to next position
+    x += (index === 0 ? 92 : 80) * dpr;
+  });
+}
+
+/**
+ * Dual-axis chart renderer
+ * Displays two data series with independent Y-axes (left and right)
+ */
+function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLabel) {
+  const renderer = createChartRenderer(canvas, xVals);
+  if (!renderer) return;
+
+  // Prepare Y-axis data for both series
+  const leftData = sanitizeNumbers(leftSeries);
+  const rightData = sanitizeNumbers(rightSeries);
+
+  // Calculate Y-axis ranges (with 6% headroom on left, 16% on right)
+  const yLeftMin = 0;
+  const yLeftMax = maxOr(leftData, 1) * 1.06;
+  const yRightMin = 0;
+  const yRightMax = maxOr(rightData, 1) * 1.16;
+
+  // Create Y-axis scale functions
+  const yLeftSpan = yLeftMax - yLeftMin || 1;
+  const yRightSpan = yRightMax - yRightMin || 1;
+
+  const yLeftScale = (y) => {
+    return renderer.pad.top + (1 - ((y - yLeftMin) / yLeftSpan)) * renderer.chartHeight;
+  };
+
+  const yRightScale = (y) => {
+    return renderer.pad.top + (1 - ((y - yRightMin) / yRightSpan)) * renderer.chartHeight;
+  };
+
+  // Render chart layers
+  drawGrid(renderer);
+  drawLeftAxisLabels(renderer, yLeftMin, yLeftMax);
+  drawRightAxisLabels(renderer, yRightMin, yRightMax, rightLabel);
+  drawXAxisLabels(renderer);
+  drawDataSeries(renderer, leftData, yLeftScale, renderer.config.colors.primary);
+  drawDataSeries(renderer, rightData, yRightScale, renderer.config.colors.secondary);
+  drawLegend(renderer, [
+    { color: renderer.config.colors.primary, label: leftLabel },
+    { color: renderer.config.colors.secondary, label: rightLabel }
+  ]);
+}
+
+/**
+ * Single-axis chart renderer
+ * Displays one data series with a single Y-axis
+ */
+function drawSingle(canvas, xVals, series, label) {
+  const renderer = createChartRenderer(canvas, xVals);
+  if (!renderer) return;
+
+  // Prepare Y-axis data
+  const yData = sanitizeNumbers(series);
+
+  // Calculate Y-axis range (with 6% headroom)
+  const yMin = 0;
+  const yMax = maxOr(yData, 1) * 1.06;
+  const ySpan = yMax - yMin || 1;
+
+  // Create Y-axis scale function
+  const yScale = (y) => {
+    return renderer.pad.top + (1 - ((y - yMin) / ySpan)) * renderer.chartHeight;
+  };
+
+  // Render chart layers
+  drawGrid(renderer);
+  drawLeftAxisLabels(renderer, yMin, yMax);
+  drawXAxisLabels(renderer);
+  drawDataSeries(renderer, yData, yScale, renderer.config.colors.primary);
+  drawLegend(renderer, [
+    { color: renderer.config.colors.primary, label }
+  ]);
+}
+
+// ============================================================================
+// END CHART RENDERING SYSTEM
+// ============================================================================
 
 function render(){
   const i = getInputs();
