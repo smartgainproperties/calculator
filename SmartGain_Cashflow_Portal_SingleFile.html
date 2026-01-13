@@ -396,6 +396,65 @@ input:hover, select:hover{
 .tiny{ font-size: 11px; color: var(--muted); font-family: var(--mono); }
 .hr{ height: 1px; background: rgba(27,67,50,.12); margin: 10px 0 0; }
 
+/* Collapsible Section */
+.collapsible-header{
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+  position: relative;
+}
+.collapsible-header::after{
+  content: 'Click to expand';
+  position: absolute;
+  right: 180px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  font-family: var(--font-body);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.collapsible-header.active::after{
+  content: 'Click to collapse';
+}
+@media (max-width: 640px){
+  .collapsible-header::after{
+    display: none;
+  }
+}
+.collapsible-header:hover{
+  background: linear-gradient(180deg, rgba(27,67,50,.08), rgba(27,67,50,.02));
+}
+.collapsible-header:hover::after{
+  opacity: 1;
+}
+.collapsible-toggle{
+  display: inline-block;
+  margin-left: 8px;
+  transition: transform 0.3s ease;
+  font-size: 14px;
+  color: var(--green);
+  font-weight: 700;
+}
+.collapsible-header.active .collapsible-toggle{
+  transform: rotate(180deg);
+}
+.collapsible-content{
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.collapsible-content.active{
+  display: block;
+  animation: fadeIn 0.3s ease forwards;
+}
+@keyframes fadeIn{
+  from{ opacity: 0; }
+  to{ opacity: 1; }
+}
+
 /* Warning Modal Styles */
 .modal-overlay{
   position: fixed;
@@ -647,11 +706,11 @@ input:hover, select:hover{
                 <td colspan="2">
                   <div class="row2">
                     <div>
-                      <label class="tiny">Rent / week</label>
+                      <label class="label">Rent / week</label>
                       <input id="rentWeek" type="number" min="0" step="5" placeholder="550">
                     </div>
                     <div>
-                      <label class="tiny">Rental Commission %</label>
+                      <label class="label">Rental Commission %</label>
                       <input id="rentComm" type="number" min="0" step="0.01" placeholder="8">
                     </div>
                   </div>
@@ -662,11 +721,11 @@ input:hover, select:hover{
                 <td colspan="2">
                   <div class="row2">
                     <div>
-                      <label class="tiny">Council Rate / yr</label>
+                      <label class="label">Council Rate / yr</label>
                       <input id="councilYr" type="number" min="0" step="50" placeholder="4000">
                     </div>
                     <div>
-                      <label class="tiny">Building Insurance / yr</label>
+                      <label class="label">Building Insurance / yr</label>
                       <input id="buildingInsYr" type="number" min="0" step="50" placeholder="1500">
                     </div>
                   </div>
@@ -677,11 +736,11 @@ input:hover, select:hover{
                 <td colspan="2">
                   <div class="row2">
                     <div>
-                      <label class="tiny">Landlord Insurance / yr</label>
+                      <label class="label">Landlord Insurance / yr</label>
                       <input id="landlordInsYr" type="number" min="0" step="50" placeholder="500">
                     </div>
                     <div>
-                      <label class="tiny">Maintenance / yr</label>
+                      <label class="label">Maintenance / yr</label>
                       <input id="maintenanceYr" type="number" min="0" step="50" placeholder="3000">
                     </div>
                   </div>
@@ -695,12 +754,12 @@ input:hover, select:hover{
                 <td colspan="2">
                   <div class="row2">
                     <div>
-                      <label class="tiny">Building Value %</label>
+                      <label class="label">Building Value %</label>
                       <input id="buildingValuePct" type="number" min="0" step="0.1" placeholder="70">
                       <span class="hint">Used only for depreciation estimate</span>
                     </div>
                     <div>
-                      <label class="tiny">Depreciation Rate %</label>
+                      <label class="label">Depreciation Rate %</label>
                       <input id="deprRatePct" type="number" min="0" step="0.1" placeholder="2.5">
                       <span class="hint">2.5% is a common estimate</span>
                     </div>
@@ -793,12 +852,12 @@ input:hover, select:hover{
     </div>
 
     <section class="card" style="margin-top:16px;">
-      <div class="head">
-        <h2>Advanced</h2>
+      <div class="head collapsible-header" id="advancedHeader">
+        <h2>Advanced <span class="collapsible-toggle">▼</span></h2>
         <span class="badge">Portfolio Projection</span>
       </div>
 
-      <div class="content">
+      <div class="content collapsible-content" id="advancedContent">
         <div class="row3">
           <div>
             <div class="label">Average Annual Growth %</div>
@@ -814,25 +873,6 @@ input:hover, select:hover{
             <div class="label">Cashflow Adjustment %</div>
             <input id="cashflowGrowthPct" type="number" min="0" step="0.01" placeholder="2.0">
             <div class="hint">Optional. Grows your net cashflow</div>
-          </div>
-        </div>
-
-        <div class="row2" style="margin-top:10px;">
-          <div>
-            <div class="label">Projection Years</div>
-            <select id="projPreset">
-              <option value="1,2,3,5,10,20,30" selected>1, 2, 3, 5, 10, 20, 30 (recommended)</option>
-              <option value="1,3,5,10,20,30">1, 3, 5, 10, 20, 30</option>
-              <option value="1,2,3,4,5,10,15,20,25,30">More points</option>
-            </select>
-          </div>
-          <div>
-            <div class="label">Projection view</div>
-            <select id="chartView">
-              <option value="value_rent" selected>Value + Rent</option>
-              <option value="value_balance">Value + Loan Balance</option>
-              <option value="equity">Equity (Value - Loan)</option>
-            </select>
           </div>
         </div>
 
@@ -974,8 +1014,7 @@ function getInputs(){
 
     capGrowth: parsePercentLoose($("capGrowthPct").value || "6"),
     rentGrowth: parsePercentLoose($("rentGrowthPct").value || "3"),
-    cashGrowth: parsePercentLoose($("cashflowGrowthPct").value || "0"),
-    years: ($("projPreset").value || "1,2,3,5,10,20,30")
+    cashGrowth: parsePercentLoose($("cashflowGrowthPct").value || "0")
   };
 }
 
@@ -1034,9 +1073,6 @@ function compute(i){
   };
 }
 
-function parseYearsCSV(csv){
-  return csv.split(",").map(s => parseInt(s.trim(),10)).filter(n => Number.isFinite(n) && n >= 0);
-}
 function projectValue(base, annualRate, years){
   return base * Math.pow(1 + annualRate, years);
 }
@@ -1104,12 +1140,11 @@ function calculateYearCashflow(year, baseInputs, baseComputed){
 }
 
 function renderProjection(baseComputed, baseInputs){
-  const yearsRaw = parseYearsCSV($("projPreset").value || "1,2,3,5,10,20,30");
-  const years = Array.from(new Set([0, ...yearsRaw])).sort((a,b)=>a-b);
+  // Fixed projection years for simplicity
+  const years = [0, 1, 2, 3, 5, 10, 20, 30];
 
   const capGrowth = parsePercentLoose($("capGrowthPct").value || "6");
   const rentGrowth = parsePercentLoose($("rentGrowthPct").value || "3");
-  const view = $("chartView").value;
 
   const baseValue = baseInputs.purchasePrice;
   const baseRentWk = baseInputs.rentWeek;
@@ -1122,9 +1157,7 @@ function renderProjection(baseComputed, baseInputs){
   const rows = [];
   const xVals = [];
   const values = [];
-  const rents = [];
   const balances = [];
-  const equities = [];
 
   for(const y of years){
     const months = Math.min(y * 12, nper);
@@ -1143,9 +1176,7 @@ function renderProjection(baseComputed, baseInputs){
 
     xVals.push(y);
     values.push(v);
-    rents.push(rw);
     balances.push(bal);
-    equities.push(eq);
 
     rows.push({y, v, bal, eq, rw, cash});
   }
@@ -1164,16 +1195,9 @@ function renderProjection(baseComputed, baseInputs){
   const canvas = $("portfolioChart");
   const caption = $("chartCaption");
 
-  if (view === "value_rent"){
-    caption.innerHTML = "Chart shows projected <b>Property Value</b> (left axis) and <b>Weekly Rent</b> (right axis). Includes <b>Year 0</b> baseline.";
-    drawDualAxis(canvas, xVals, values, rents, "Value", "Rent/wk");
-  } else if (view === "value_balance"){
-    caption.innerHTML = "Chart shows projected <b>Property Value</b> (left axis) and <b>Loan Balance</b> (right axis). Includes <b>Year 0</b> baseline.";
-    drawDualAxis(canvas, xVals, values, balances, "Value", "Loan");
-  } else {
-    caption.innerHTML = "Chart shows projected <b>Equity</b> (Value - Loan Balance). Includes <b>Year 0</b> baseline.";
-    drawSingle(canvas, xVals, equities, "Equity");
-  }
+  // Always show Value + Loan Balance view (simplified)
+  caption.innerHTML = "Chart shows projected <b>Property Value</b> and <b>Loan Balance</b> over time. Includes <b>Year 0</b> baseline.";
+  drawDualAxis(canvas, xVals, values, balances, "Value", "Loan");
 }
 
 // ============================================================================
@@ -1315,7 +1339,7 @@ class ChartAxis {
 
   scale(value, plotHeight, plotTop, plotBottom) {
     const normalized = (value - this.min) / this.range;
-    return plotTop + (1 - normalized) * plotBottom;
+    return plotTop + (1 - normalized) * plotHeight;
   }
 
   getTicks(count = 5) {
@@ -1698,8 +1722,6 @@ function setForm(v){
   $("rentGrowthPct").value = (v.rentGrowthPct ?? 3).toString();
   $("cashflowGrowthPct").value = (v.cashflowGrowthPct ?? 2).toString();
 
-  $("projPreset").value = "1,2,3,5,10,20,30";
-  $("chartView").value = "value_rent";
   render();
 }
 
@@ -1708,13 +1730,29 @@ const inputs = [
   "rentWeek","rentComm",
   "councilYr","buildingInsYr","landlordInsYr","maintenanceYr","accountingYr","superYr",
   "buildingValuePct","deprRatePct","taxDeductRatio","taxRate",
-  "capGrowthPct","rentGrowthPct","cashflowGrowthPct","projPreset","chartView"
+  "capGrowthPct","rentGrowthPct","cashflowGrowthPct"
 ];
 
 inputs.forEach(id => $(id).addEventListener("input", render));
 $("state").addEventListener("change", render);
-$("projPreset").addEventListener("change", render);
-$("chartView").addEventListener("change", render);
+
+// Collapsible Advanced section
+$("advancedHeader").addEventListener("click", () => {
+  const header = $("advancedHeader");
+  const content = $("advancedContent");
+  const wasActive = header.classList.contains("active");
+
+  header.classList.toggle("active");
+  content.classList.toggle("active");
+
+  // If we just opened the section, re-render the chart after a short delay
+  // to ensure the canvas has proper dimensions
+  if (!wasActive) {
+    setTimeout(() => {
+      render();
+    }, 100);
+  }
+});
 
 (function attachResizeObserver(){
   const canvas = $("portfolioChart");
