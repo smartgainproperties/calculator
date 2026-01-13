@@ -401,27 +401,58 @@ input:hover, select:hover{
   cursor: pointer;
   user-select: none;
   transition: background 0.2s ease;
+  position: relative;
+}
+.collapsible-header::after{
+  content: 'Click to expand';
+  position: absolute;
+  right: 180px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  font-family: var(--font-body);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.collapsible-header.active::after{
+  content: 'Click to collapse';
+}
+@media (max-width: 640px){
+  .collapsible-header::after{
+    display: none;
+  }
 }
 .collapsible-header:hover{
   background: linear-gradient(180deg, rgba(27,67,50,.08), rgba(27,67,50,.02));
+}
+.collapsible-header:hover::after{
+  opacity: 1;
 }
 .collapsible-toggle{
   display: inline-block;
   margin-left: 8px;
   transition: transform 0.3s ease;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--green);
+  font-weight: 700;
 }
 .collapsible-header.active .collapsible-toggle{
   transform: rotate(180deg);
 }
 .collapsible-content{
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.4s ease;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 .collapsible-content.active{
-  max-height: 3000px;
+  display: block;
+  animation: fadeIn 0.3s ease forwards;
+}
+@keyframes fadeIn{
+  from{ opacity: 0; }
+  to{ opacity: 1; }
 }
 
 /* Warning Modal Styles */
@@ -1709,8 +1740,18 @@ $("state").addEventListener("change", render);
 $("advancedHeader").addEventListener("click", () => {
   const header = $("advancedHeader");
   const content = $("advancedContent");
+  const wasActive = header.classList.contains("active");
+
   header.classList.toggle("active");
   content.classList.toggle("active");
+
+  // If we just opened the section, re-render the chart after a short delay
+  // to ensure the canvas has proper dimensions
+  if (!wasActive) {
+    setTimeout(() => {
+      render();
+    }, 100);
+  }
 });
 
 (function attachResizeObserver(){
