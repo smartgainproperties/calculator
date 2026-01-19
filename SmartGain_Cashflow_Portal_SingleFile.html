@@ -1629,6 +1629,7 @@ class ChartRenderer {
 function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLabel) {
   const renderer = new ChartRenderer(canvas);
 
+  // Both series on same axis so loan appears at correct position relative to value
   const series = [
     {
       data: leftSeries,
@@ -1641,8 +1642,8 @@ function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLa
       data: rightSeries,
       label: rightLabel,
       color: '#D4AF37',
-      axis: 'right',
-      formatType: (rightLabel === 'Loan' || rightLabel === 'Value') ? 'currency' : 'rent'
+      axis: 'left',
+      formatType: 'currency'
     }
   ];
 
