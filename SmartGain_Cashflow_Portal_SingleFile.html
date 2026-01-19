@@ -1356,6 +1356,11 @@ class ChartAxis {
 
   formatLabel(value, formatType = 'currency') {
     if (formatType === 'currency') {
+      if (Math.abs(value) >= 1000000) {
+        const millions = value / 1000000;
+        // Show whole number if no decimal needed, otherwise one decimal place
+        return (millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)) + 'M';
+      }
       return (value / 1000).toFixed(0) + 'k';
     } else if (formatType === 'rent') {
       return '$' + value.toFixed(0);
