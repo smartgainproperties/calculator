@@ -1071,9 +1071,14 @@ function compute(i){
 
   const interestPortionMonth1 = loanAmount * i.interestRate / 12;
 
-  const annualExpense =
-    (monthlyPAndI * 12) +
-    i.councilYr + i.buildingInsYr + i.landlordInsYr + i.maintenanceYr + i.accountingYr;
+  // For Year 1, interest is approximately the full loan amount × rate (most of P&I is interest early on)
+  const interestYr1 = loanAmount * i.interestRate;
+
+  // Operating expenses (council, insurance, maintenance, accounting)
+  const operatingExpenses = i.councilYr + i.buildingInsYr + i.landlordInsYr + i.maintenanceYr + i.accountingYr;
+
+  // Total cash expenses (P&I + operating) - this affects actual cashflow
+  const annualExpense = (monthlyPAndI * 12) + operatingExpenses;
 
   const netRentYr = i.rentWeek * 52 * (1 - rentComm);
   const yieldGross = (i.purchasePrice > 0) ? ((i.rentWeek * 52) / i.purchasePrice) : 0;
@@ -1081,10 +1086,20 @@ function compute(i){
   const cashflowYrPreTax = netRentYr - annualExpense - i.superYr;
   const cashflowMonthPreTax = cashflowYrPreTax / 12;
 
+  // Depreciation is a tax deduction (non-cash)
   const depreciationYr = i.purchasePrice * buildingValuePct * deprRatePct;
 
-  const netExpTax = (Math.abs(cashflowYrPreTax) - depreciationYr) * taxDeductRatio;
-  const taxBenefit = netExpTax * taxRate;
+  // Tax-deductible expenses: interest (NOT principal) + operating + depreciation
+  const deductibleExpenses = interestYr1 + operatingExpenses + depreciationYr;
+
+  // Taxable income from property (can be negative = tax loss)
+  const taxablePropertyIncome = netRentYr - deductibleExpenses;
+
+  // Tax benefit only if negatively geared (loss reduces other taxable income)
+  let taxBenefit = 0;
+  if (taxablePropertyIncome < 0) {
+    taxBenefit = Math.abs(taxablePropertyIncome) * taxDeductRatio * taxRate;
+  }
 
   const cashflowYrAfterTax = cashflowYrPreTax + taxBenefit;
   const cashflowMonthAfterTax = cashflowYrAfterTax / 12;
@@ -1144,21 +1159,19 @@ function calculateYearCashflow(year, baseInputs, baseComputed){
   const deprRatePct = parsePercentLoose(baseInputs.deprRatePct || 2.5);
   const depreciationYr = baseInputs.purchasePrice * buildingValuePct * deprRatePct;
 
-  // Tax deductible amount: interest + other expenses + depreciation
   const taxDeductRatio = parsePercentLoose(baseInputs.taxDeductRatio || 100);
   const taxRate = parsePercentLoose(baseInputs.taxRate);
 
-  // Only interest and other expenses are deductible, NOT principal
-  const deductibleExpenses = interestPaid + otherExpenses;
-  const taxableIncome = netRentYr - deductibleExpenses;
+  // Tax-deductible expenses: interest + operating expenses + depreciation (NOT principal)
+  const deductibleExpenses = interestPaid + otherExpenses + depreciationYr;
 
+  // Taxable income from property (can be negative = tax loss)
+  const taxablePropertyIncome = netRentYr - deductibleExpenses;
+
+  // Tax benefit only if negatively geared (loss reduces other taxable income)
   let taxBenefit = 0;
-  if (taxableIncome < 0) {
-    // Negative taxable income = tax benefit from loss
-    taxBenefit = Math.abs(taxableIncome + depreciationYr) * taxDeductRatio * taxRate;
-  } else {
-    // Positive taxable income = tax liability (but we also get depreciation benefit)
-    taxBenefit = depreciationYr * taxDeductRatio * taxRate;
+  if (taxablePropertyIncome < 0) {
+    taxBenefit = Math.abs(taxablePropertyIncome) * taxDeductRatio * taxRate;
   }
 
   const cashflowYrAfterTax = cashflowYrPreTax + taxBenefit;
