@@ -711,7 +711,7 @@ input:hover, select:hover{
             <tbody>
               <tr>
                 <td class="label">Property Address</td>
-                <td><input id="address" type="text" placeholder="5 Henschke Court, Caboolture QLD 4510"></td>
+                <td><input id="address" type="text" placeholder="YOUR_PROPERTY_ADDRESS"></td>
               </tr>
 
               <tr>
@@ -853,7 +853,7 @@ input:hover, select:hover{
             <div class="kpiCard kpiHero">
               <div class="k">Net Cashflow / month</div>
               <div class="v" id="outNetCashMonth">$0</div>
-              <div class="hint">Negative = out-of-pocket (shown in brackets)</div>
+              <div class="hint">Monthly cashflow (pre-tax): <span id="outCashPreTaxHero">$0</span> | Negative = out-of-pocket (shown in brackets)</div>
             </div>
 
             <div class="hr"></div>
@@ -1707,6 +1707,7 @@ function render(){
   $("outExpenseYr").textContent = fmtOutflowAUD(o.annualExpense, 0);
   $("outCashflowYrPreTax").textContent = fmtSignedAUD(o.cashflowYrPreTax, 0);
   $("outCashPreTax").textContent = fmtSignedAUD(o.cashflowMonthPreTax, 2);
+  $("outCashPreTaxHero").textContent = fmtSignedAUD(o.cashflowMonthPreTax, 2);
 
   $("outTaxableIncome").textContent = fmtSignedAUD(o.taxablePropertyIncome, 0);
   $("outTaxBenefit").textContent = fmtAUD2(o.taxBenefit);
@@ -1722,7 +1723,7 @@ function render(){
 }
 
 const sample = {
-  address: "5 Henschke Court, Caboolture QLD 4510",
+  address: "YOUR_PROPERTY_ADDRESS",
   state: "QLD",
   purchasePrice: 565000,
   depositPct: 0.20,
