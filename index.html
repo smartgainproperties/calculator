@@ -728,6 +728,15 @@ input:hover, select:hover{
               <tr><td class="label">Deposit %</td><td><input id="depositPct" type="number" min="0" step="0.01" placeholder="20"></td></tr>
               <tr><td class="label">Interest Rate % (p.a.)</td><td><input id="interestRate" type="number" min="0" step="0.0001" placeholder="5.5"></td></tr>
               <tr><td class="label">Loan Term (years)</td><td><input id="loanTermYears" type="number" min="1" step="1" placeholder="30"></td></tr>
+              <tr>
+                <td class="label">Loan Type</td>
+                <td>
+                  <select id="loanType">
+                    <option value="PI">Principal & Interest</option>
+                    <option value="IO">Interest Only</option>
+                  </select>
+                </td>
+              </tr>
 
               <tr>
                 <td colspan="2">
@@ -753,7 +762,7 @@ input:hover, select:hover{
                     </div>
                     <div>
                       <label class="label">Building Insurance / yr</label>
-                      <input id="buildingInsYr" type="number" min="0" step="50" placeholder="1500">
+                      <input id="buildingInsYr" type="number" min="0" step="50" placeholder="1000">
                     </div>
                   </div>
                 </td>
@@ -764,11 +773,11 @@ input:hover, select:hover{
                   <div class="row2">
                     <div>
                       <label class="label">Landlord Insurance / yr</label>
-                      <input id="landlordInsYr" type="number" min="0" step="50" placeholder="500">
+                      <input id="landlordInsYr" type="number" min="0" step="50" placeholder="350">
                     </div>
                     <div>
                       <label class="label">Maintenance / yr</label>
-                      <input id="maintenanceYr" type="number" min="0" step="50" placeholder="3000">
+                      <input id="maintenanceYr" type="number" min="0" step="50" placeholder="2000">
                     </div>
                   </div>
                 </td>
@@ -819,8 +828,8 @@ input:hover, select:hover{
 
             <div class="split">
               <div class="kpiCard">
-                <div class="k">Monthly Repayment (P&amp;I)</div>
-                <div class="v" id="outMonthlyPAndI">$0</div>
+                <div class="k" id="outMonthlyRepaymentLabel">Monthly Repayment (P&amp;I)</div>
+                <div class="v" id="outMonthlyRepayment">$0</div>
               </div>
               <div class="kpiCard">
                 <div class="k">Interest portion (month 1)</div>
@@ -1027,6 +1036,7 @@ function getInputs(){
     rentComm: parsePercentLoose($("rentComm").value),
 
     loanTermYears: parseFloat($("loanTermYears").value) || 0,
+    loanType: $("loanType").value,
 
     rentWeek: parseFloat($("rentWeek").value) || 0,
 
@@ -1075,14 +1085,18 @@ function compute(i){
 
   const interestPortionMonth1 = loanAmount * i.interestRate / 12;
 
+  // Determine effective monthly payment based on loan type
+  const isInterestOnly = i.loanType === "IO";
+  const effectiveMonthlyPayment = isInterestOnly ? interestPortionMonth1 : monthlyPAndI;
+
   // For Year 1, interest is approximately the full loan amount × rate (most of P&I is interest early on)
   const interestYr1 = loanAmount * i.interestRate;
 
   // Operating expenses (council, insurance, maintenance, accounting)
   const operatingExpenses = i.councilYr + i.buildingInsYr + i.landlordInsYr + i.maintenanceYr + i.accountingYr;
 
-  // Total cash expenses (P&I + operating) - this affects actual cashflow
-  const annualExpense = (monthlyPAndI * 12) + operatingExpenses;
+  // Total cash expenses (loan payment + operating) - this affects actual cashflow
+  const annualExpense = (effectiveMonthlyPayment * 12) + operatingExpenses;
 
   const netRentYr = i.rentWeek * 52 * (1 - rentComm);
   const yieldGross = (i.purchasePrice > 0) ? ((i.rentWeek * 52) / i.purchasePrice) : 0;
@@ -1112,6 +1126,7 @@ function compute(i){
     loanAmount, deposit, lvr,
     stampDuty, lmi, cashRequired,
     monthlyRate, nper, monthlyPAndI, interestPortionMonth1,
+    isInterestOnly, effectiveMonthlyPayment,
     annualExpense, netRentYr, yieldGross,
     cashflowYrPreTax, cashflowMonthPreTax,
     depreciationYr, taxablePropertyIncome, taxBenefit,
@@ -1698,7 +1713,14 @@ function render(){
   $("outCashRequired").textContent = fmtAUD0(o.cashRequired);
   $("outCashRequiredSub").textContent = `Deposit ${fmtAUD0(o.deposit)} + LMI ${fmtAUD0(o.lmi)} + Duty ${fmtAUD0(o.stampDuty)}`;
 
-  $("outMonthlyPAndI").textContent = fmtAUD2(o.monthlyPAndI);
+  // Update monthly repayment based on loan type
+  if (o.isInterestOnly) {
+    $("outMonthlyRepaymentLabel").innerHTML = "Monthly Repayment (IO)";
+    $("outMonthlyRepayment").textContent = fmtAUD2(o.interestPortionMonth1);
+  } else {
+    $("outMonthlyRepaymentLabel").innerHTML = "Monthly Repayment (P&amp;I)";
+    $("outMonthlyRepayment").textContent = fmtAUD2(o.monthlyPAndI);
+  }
   $("outInterestOnly").textContent = fmtAUD2(o.interestPortionMonth1);
 
   $("outNetRentYr").textContent = fmtAUD0(o.netRentYr);
@@ -1729,12 +1751,13 @@ const sample = {
   depositPct: 0.20,
   interestRate: 0.055,
   loanTermYears: 30,
+  loanType: "PI",
   rentWeek: 550,
   rentComm: 0.08,
   councilYr: 4000,
-  buildingInsYr: 1500,
-  landlordInsYr: 500,
-  maintenanceYr: 3000,
+  buildingInsYr: 1000,
+  landlordInsYr: 350,
+  maintenanceYr: 2000,
   accountingYr: 0,
   superYr: 0,
   buildingValuePct: 0.70,
@@ -1754,6 +1777,7 @@ function setForm(v){
   $("depositPct").value = ((v.depositPct ?? 0) * 100).toFixed(0);
   $("interestRate").value = ((v.interestRate ?? 0) * 100).toFixed(2);
   $("loanTermYears").value = v.loanTermYears ?? 30;
+  $("loanType").value = v.loanType ?? "PI";
 
   $("rentWeek").value = v.rentWeek ?? 0;
   $("rentComm").value = ((v.rentComm ?? 0) * 100).toFixed(0);
@@ -1779,7 +1803,7 @@ function setForm(v){
 }
 
 const inputs = [
-  "address","state","purchasePrice","depositPct","interestRate","loanTermYears",
+  "address","state","purchasePrice","depositPct","interestRate","loanTermYears","loanType",
   "rentWeek","rentComm",
   "councilYr","buildingInsYr","landlordInsYr","maintenanceYr","accountingYr","superYr",
   "buildingValuePct","deprRatePct","taxDeductRatio","taxRate",
@@ -1788,6 +1812,7 @@ const inputs = [
 
 inputs.forEach(id => $(id).addEventListener("input", render));
 $("state").addEventListener("change", render);
+$("loanType").addEventListener("change", render);
 
 // Collapsible Advanced section
 $("advancedHeader").addEventListener("click", () => {
