@@ -860,9 +860,9 @@ input:hover, select:hover{
             </div>
 
             <div class="kpiCard kpiHero">
-              <div class="k">Net Cashflow / month</div>
-              <div class="v" id="outNetCashMonth">$0</div>
-              <div class="hint">Monthly cashflow (pre-tax): <span id="outCashPreTaxHero">$0</span> | Negative = out-of-pocket (shown in brackets)</div>
+              <div class="k">Monthly Cashflow (pre-tax)</div>
+              <div class="v" id="outCashPreTaxHero">$0</div>
+              <div class="hint">Negative = out-of-pocket (shown in brackets)</div>
             </div>
 
             <div class="hr"></div>
@@ -1733,7 +1733,6 @@ function render(){
 
   $("outTaxableIncome").textContent = fmtSignedAUD(o.taxablePropertyIncome, 0);
   $("outTaxBenefit").textContent = fmtAUD2(o.taxBenefit);
-  $("outNetCashMonth").textContent = fmtSignedAUD(o.cashflowMonthAfterTax, 2);
   $("outNetCashMonthFinal").innerHTML = `<strong>${fmtSignedAUD(o.cashflowMonthAfterTax, 2)}</strong>`;
 
   const addr = i.address ? i.address : "Property";
