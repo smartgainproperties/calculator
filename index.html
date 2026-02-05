@@ -665,29 +665,68 @@ input:hover, select:hover{
   /* Keep two-column grid but tighter */
   .grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
 
-  /* ── Inputs card: show values as text instead of form fields ── */
+  /* ── Inputs card: show values as plain text ── */
   .card input,
   .card select {
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
-    padding: 2px 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
     font-weight: 600;
+    font-size: 11px !important;
     color: var(--text);
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
     pointer-events: none;
+    width: auto !important;
+    display: inline !important;
   }
   .card select { padding-right: 0 !important; }
-  /* Hide the dropdown arrow in print */
   .card select::-ms-expand { display: none; }
 
-  /* Tighten table rows */
-  .table td, .table th { padding: 4px 6px !important; font-size: 11px; }
-  .content { padding: 10px 14px !important; }
-  .head { padding: 8px 14px !important; }
-  .head h2 { font-size: 14px; }
+  /* ── Row2 pairs: display as inline label: value ── */
+  .row2, .row3 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0 12px !important;
+  }
+  .row2 > div, .row3 > div {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(27,67,50,.06);
+  }
+  .row2 > div > label,
+  .row3 > div > label {
+    font-size: 10px !important;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .row2 > div > input,
+  .row3 > div > input {
+    text-align: right !important;
+    flex: 1;
+  }
+
+  /* ── Inputs table: tight clean rows ── */
+  .table td, .table th { padding: 3px 6px !important; font-size: 11px; }
+  .table td.label { font-size: 10px !important; white-space: nowrap; }
+  .table[aria-label="inputs"] td { border-bottom: 1px solid rgba(27,67,50,.06) !important; }
+  .table[aria-label="inputs"] input,
+  .table[aria-label="inputs"] select {
+    text-align: right !important;
+  }
+  /* Remove full-width colspan padding for row2 containers */
+  .table[aria-label="inputs"] td[colspan] { padding: 0 6px !important; }
+
+  .content { padding: 8px 12px !important; }
+  .head { padding: 6px 12px !important; }
+  .head h2 { font-size: 13px; }
 
   /* Compact KPI cards */
   .kpi { gap: 6px !important; }
@@ -696,7 +735,6 @@ input:hover, select:hover{
   .kpiCard .v { font-size: 16px !important; }
   .kpiHero .v { font-size: 20px !important; }
   .split { gap: 6px !important; }
-  .row2, .row3 { gap: 6px !important; }
   .hr { margin: 4px 0 !important; }
 
   /* Hints – hide in print */
