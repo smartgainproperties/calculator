@@ -790,14 +790,14 @@ input:hover, select:hover{
                 <td colspan="2">
                   <div class="row2">
                     <div>
-                      <label class="label">Building Value %</label>
-                      <input id="buildingValuePct" type="number" min="0" step="0.1" placeholder="70">
-                      <span class="hint">Used only for depreciation estimate</span>
+                      <label class="label">Built Year</label>
+                      <input id="builtYear" type="number" min="1900" max="2099" step="1" placeholder="2000">
+                      <span class="hint">Year the property was built (post-1985 for Div 43 deduction)</span>
                     </div>
                     <div>
                       <label class="label">Depreciation Rate %</label>
                       <input id="deprRatePct" type="number" min="0" step="0.1" placeholder="2.5">
-                      <span class="hint">2.5% is a common estimate</span>
+                      <span class="hint">2.5% standard for Div 43 (40-year life)</span>
                     </div>
                   </div>
                 </td>
@@ -1047,7 +1047,7 @@ function getInputs(){
     accountingYr: parseFloat($("accountingYr").value) || 0,
     superYr: parseFloat($("superYr").value) || 0,
 
-    buildingValuePct: parsePercentLoose($("buildingValuePct").value),
+    builtYear: parseInt($("builtYear").value) || 0,
     deprRatePct: parsePercentLoose($("deprRatePct").value),
 
     taxDeductRatio: parsePercentLoose($("taxDeductRatio").value),
@@ -1063,8 +1063,10 @@ function compute(i){
   const depositPct = clamp01(i.depositPct);
   const rentComm = clamp01(i.rentComm);
 
-  const buildingValuePct = clamp01(i.buildingValuePct || 0.70);
   const deprRatePct = clamp01(i.deprRatePct || 0.025);
+  const currentYear = new Date().getFullYear();
+  const buildingAge = i.builtYear > 0 ? currentYear - i.builtYear : 999;
+  const deprEligible = i.builtYear > 1985 && buildingAge < 40;
 
   const taxDeductWasBlank = $("taxDeductRatio").value.trim() === "";
   const taxDeductRatio = clamp01(taxDeductWasBlank ? 1 : i.taxDeductRatio);
@@ -1104,8 +1106,8 @@ function compute(i){
   const cashflowYrPreTax = netRentYr - annualExpense - i.superYr;
   const cashflowMonthPreTax = cashflowYrPreTax / 12;
 
-  // Depreciation is a tax deduction (non-cash)
-  const depreciationYr = i.purchasePrice * buildingValuePct * deprRatePct;
+  // Depreciation is a tax deduction (non-cash) — Div 43 capital works
+  const depreciationYr = deprEligible ? i.purchasePrice * 0.40 * deprRatePct : 0;
 
   // Tax-deductible expenses: interest (NOT principal) + operating + depreciation
   const deductibleExpenses = interestYr1 + operatingExpenses + depreciationYr;
@@ -1173,10 +1175,12 @@ function calculateYearCashflow(year, baseInputs, baseComputed){
   // Pre-tax cash flow
   const cashflowYrPreTax = netRentYr - annualExpense - baseInputs.superYr;
 
-  // Depreciation (decreases over time but we'll use a simplified approach)
-  const buildingValuePct = parsePercentLoose(baseInputs.buildingValuePct || 70);
+  // Depreciation — Div 43 capital works (eligible if built after 1985, within 40 years)
   const deprRatePct = parsePercentLoose(baseInputs.deprRatePct || 2.5);
-  const depreciationYr = baseInputs.purchasePrice * buildingValuePct * deprRatePct;
+  const builtYear = parseInt(baseInputs.builtYear) || 0;
+  const buildingAge = builtYear > 0 ? (new Date().getFullYear() + year) - builtYear : 999;
+  const deprEligible = builtYear > 1985 && buildingAge < 40;
+  const depreciationYr = deprEligible ? baseInputs.purchasePrice * 0.40 * deprRatePct : 0;
 
   const taxDeductRatio = parsePercentLoose(baseInputs.taxDeductRatio || 100);
   const taxRate = parsePercentLoose(baseInputs.taxRate);
@@ -1760,7 +1764,7 @@ const sample = {
   maintenanceYr: 2000,
   accountingYr: 0,
   superYr: 0,
-  buildingValuePct: 0.70,
+  builtYear: 2000,
   deprRatePct: 0.025,
   taxDeductRatio: 1.00,
   taxRate: 0.30,
@@ -1789,7 +1793,7 @@ function setForm(v){
   $("accountingYr").value = v.accountingYr ?? 0;
   $("superYr").value = v.superYr ?? 0;
 
-  $("buildingValuePct").value = ((v.buildingValuePct ?? 0.70) * 100).toFixed(0);
+  $("builtYear").value = v.builtYear ?? 2000;
   $("deprRatePct").value = ((v.deprRatePct ?? 0.025) * 100).toFixed(2);
 
   $("taxDeductRatio").value = ((v.taxDeductRatio ?? 1) * 100).toFixed(0);
@@ -1806,7 +1810,7 @@ const inputs = [
   "address","state","purchasePrice","depositPct","interestRate","loanTermYears","loanType",
   "rentWeek","rentComm",
   "councilYr","buildingInsYr","landlordInsYr","maintenanceYr","accountingYr","superYr",
-  "buildingValuePct","deprRatePct","taxDeductRatio","taxRate",
+  "builtYear","deprRatePct","taxDeductRatio","taxRate",
   "capGrowthPct","rentGrowthPct","cashflowGrowthPct"
 ];
 
