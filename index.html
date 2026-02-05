@@ -877,9 +877,9 @@ input:hover, select:hover{
                 <tr><td class="label">Stamp Duty (auto)</td><td style="text-align:right" class="tiny" id="outDuty">$0</td></tr>
                 <tr><td class="label">Depreciation / yr (auto)</td><td style="text-align:right" class="tiny" id="outDepr">$0</td></tr>
                 <tr><td class="label">Monthly cashflow (pre-tax)</td><td style="text-align:right" class="tiny" id="outCashPreTax">$0</td></tr>
-                <tr><td class="label">Taxable income / yr</td><td style="text-align:right" class="tiny" id="outTaxableIncome">$0</td></tr>
-                <tr><td class="label">Tax benefit / yr</td><td style="text-align:right" class="tiny" id="outTaxBenefit">$0</td></tr>
-                <tr style="border-top: 2px solid var(--gold);"><td class="label"><strong>Net cashflow / mo (after tax)</strong></td><td style="text-align:right" id="outNetCashMonthFinal"><strong>$0</strong></td></tr>
+                <tr><td class="label">Deduction on Taxable Income /yr</td><td style="text-align:right" class="tiny" id="outTaxableIncome">$0</td></tr>
+                <tr><td class="label" id="outTaxBenefitLabel">Tax benefit /yr</td><td style="text-align:right" class="tiny" id="outTaxBenefit">$0</td></tr>
+                <tr style="border-top: 2px solid var(--gold);"><td class="label"><strong>Net cashflow / mo (after tax deductions included)</strong></td><td style="text-align:right" id="outNetCashMonthFinal"><strong>$0</strong></td></tr>
               </tbody>
             </table>
 
@@ -1732,6 +1732,7 @@ function render(){
   $("outCashPreTaxHero").textContent = fmtSignedAUD(o.cashflowMonthPreTax, 2);
 
   $("outTaxableIncome").textContent = fmtSignedAUD(o.taxablePropertyIncome, 0);
+  $("outTaxBenefitLabel").textContent = `Tax benefit /yr (Based on ${(i.taxRate * 100).toFixed(0)}% tax rate)`;
   $("outTaxBenefit").textContent = fmtAUD2(o.taxBenefit);
   $("outNetCashMonthFinal").innerHTML = `<strong>${fmtSignedAUD(o.cashflowMonthAfterTax, 2)}</strong>`;
 
