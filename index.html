@@ -695,7 +695,7 @@ input:hover, select:hover{
 
       <div class="actions">
         <button id="btnReset">Reset</button>
-        <button class="btnPrimary" id="btnExport">Copy Inputs</button>
+        <button class="btnPrimary" id="btnSavePDF">Save as PDF</button>
       </div>
     </header>
 
@@ -1850,17 +1850,7 @@ $("advancedHeader").addEventListener("click", () => {
 
 $("btnReset").addEventListener("click", () => setForm(sample));
 
-$("btnExport").addEventListener("click", async () => {
-  const json = JSON.stringify(getInputs(), null, 2);
-  try{
-    await navigator.clipboard.writeText(json);
-    alert("Copied inputs to clipboard.");
-  }catch(e){
-    const w = window.open();
-    w.document.write(`<pre>${json.replace(/[<>]/g, s => ({'<':'&lt;','>':'&gt;'}[s]))}</pre>`);
-    w.document.close();
-  }
-});
+$("btnSavePDF").addEventListener("click", () => window.print());
 
 window.addEventListener("load", () => setTimeout(() => setForm(sample), 0));
 
