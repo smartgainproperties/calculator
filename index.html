@@ -657,13 +657,13 @@ input:hover, select:hover{
   /* Remove background / shadow noise */
   body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .wrap { max-width: 100%; margin: 0; padding: 0; }
-  .card { box-shadow: none !important; border: 1px solid #ddd !important; border-radius: 10px !important; break-inside: avoid; margin-bottom: 10px; }
+  .card { box-shadow: none !important; border: 1px solid #ddd !important; border-radius: 10px !important; break-inside: avoid; margin-bottom: 10px; overflow: visible !important; }
   .kpiCard { box-shadow: none !important; border: 1px solid #ddd !important; }
   .kpiHero { background: #f8f8f5 !important; }
   .kpiHero::before { display: none !important; }
 
-  /* Keep two-column grid but tighter */
-  .grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
+  /* Keep two-column grid but tighter – give inputs card more room */
+  .grid { grid-template-columns: 1.2fr 0.8fr !important; gap: 10px; }
 
   /* ── Inputs card: show values as plain text ── */
   .card input,
@@ -682,8 +682,9 @@ input:hover, select:hover{
     -moz-appearance: none;
     appearance: none;
     pointer-events: none;
-    width: auto !important;
-    display: inline !important;
+    width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
   }
   .card select { padding-right: 0 !important; }
   .card select::-ms-expand { display: none; }
@@ -704,25 +705,32 @@ input:hover, select:hover{
   .row2 > div > label,
   .row3 > div > label {
     font-size: 10px !important;
-    white-space: nowrap;
+    white-space: normal;
     min-width: 0;
+    flex-shrink: 1;
   }
   .row2 > div > input,
   .row3 > div > input {
     text-align: right !important;
-    flex: 1;
+    flex: 0 0 auto;
+    width: auto !important;
+    display: inline !important;
+    min-width: 50px;
   }
 
   /* ── Inputs table: tight clean rows ── */
   .table td, .table th { padding: 3px 6px !important; font-size: 11px; }
   .table td.label { font-size: 10px !important; white-space: nowrap; }
+  .table[aria-label="inputs"] { table-layout: fixed; width: 100%; }
+  .table[aria-label="inputs"] > tbody > tr > td.label { width: 55%; }
+  .table[aria-label="inputs"] > tbody > tr > td:not(.label):not([colspan]) { width: 45%; }
   .table[aria-label="inputs"] td { border-bottom: 1px solid rgba(27,67,50,.06) !important; }
   .table[aria-label="inputs"] input,
   .table[aria-label="inputs"] select {
     text-align: right !important;
   }
   /* Remove full-width colspan padding for row2 containers */
-  .table[aria-label="inputs"] td[colspan] { padding: 0 6px !important; }
+  .table[aria-label="inputs"] td[colspan] { padding: 0 6px !important; width: 100% !important; }
 
   .content { padding: 8px 12px !important; }
   .head { padding: 6px 12px !important; }
