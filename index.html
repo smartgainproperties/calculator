@@ -644,6 +644,121 @@ input:hover, select:hover{
   }
 }
 
+/* ── Print / Save-as-PDF ──────────────────────────── */
+@media print {
+  /* Reset page margins */
+  @page { margin: 12mm 10mm; size: A4; }
+
+  /* Hide non-essential elements */
+  .pattern, .modal-overlay, .actions, .badge,
+  .collapsible-toggle, .eyebrow, header p,
+  .footerNote:not(#reportLine):not(#chartCaption) { display: none !important; }
+
+  /* Remove background / shadow noise */
+  body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .wrap { max-width: 100%; margin: 0; padding: 0; }
+  .card { box-shadow: none !important; border: 1px solid #ddd !important; border-radius: 10px !important; break-inside: avoid; margin-bottom: 10px; }
+  .kpiCard { box-shadow: none !important; border: 1px solid #ddd !important; }
+  .kpiHero { background: #f8f8f5 !important; }
+  .kpiHero::before { display: none !important; }
+
+  /* Keep two-column grid but tighter */
+  .grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
+
+  /* ── Inputs card: show values as plain text ── */
+  .card input,
+  .card select {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    font-weight: 600;
+    font-size: 11px !important;
+    color: var(--text);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    pointer-events: none;
+    width: auto !important;
+    display: inline !important;
+  }
+  .card select { padding-right: 0 !important; }
+  .card select::-ms-expand { display: none; }
+
+  /* ── Row2 pairs: display as inline label: value ── */
+  .row2, .row3 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0 12px !important;
+  }
+  .row2 > div, .row3 > div {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(27,67,50,.06);
+  }
+  .row2 > div > label,
+  .row3 > div > label {
+    font-size: 10px !important;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .row2 > div > input,
+  .row3 > div > input {
+    text-align: right !important;
+    flex: 1;
+  }
+
+  /* ── Inputs table: tight clean rows ── */
+  .table td, .table th { padding: 3px 6px !important; font-size: 11px; }
+  .table td.label { font-size: 10px !important; white-space: nowrap; }
+  .table[aria-label="inputs"] td { border-bottom: 1px solid rgba(27,67,50,.06) !important; }
+  .table[aria-label="inputs"] input,
+  .table[aria-label="inputs"] select {
+    text-align: right !important;
+  }
+  /* Remove full-width colspan padding for row2 containers */
+  .table[aria-label="inputs"] td[colspan] { padding: 0 6px !important; }
+
+  .content { padding: 8px 12px !important; }
+  .head { padding: 6px 12px !important; }
+  .head h2 { font-size: 13px; }
+
+  /* Compact KPI cards */
+  .kpi { gap: 6px !important; }
+  .kpiCard { padding: 8px 10px !important; border-radius: 8px !important; }
+  .kpiCard .k { font-size: 10px !important; }
+  .kpiCard .v { font-size: 16px !important; }
+  .kpiHero .v { font-size: 20px !important; }
+  .split { gap: 6px !important; }
+  .hr { margin: 4px 0 !important; }
+
+  /* Hints – hide in print */
+  .hint { display: none !important; }
+
+  /* Report line at bottom */
+  #reportLine { font-size: 9px; margin-top: 6px; }
+
+  /* Advanced / projection section */
+  #portfolioChart { max-height: 140px; break-inside: avoid; }
+  #advancedContent { display: block !important; }
+
+  /* Header – compact */
+  header { margin-bottom: 8px !important; }
+  header h1 { font-size: 18px !important; margin: 0 !important; }
+  .brandLogo { height: 28px !important; }
+  .brandline { margin-bottom: 4px; }
+
+  /* Prevent orphan rows */
+  tr { break-inside: avoid; }
+
+  /* Links – no underline */
+  a { text-decoration: none !important; color: inherit !important; }
+}
   </style>
 </head>
 
@@ -695,7 +810,7 @@ input:hover, select:hover{
 
       <div class="actions">
         <button id="btnReset">Reset</button>
-        <button class="btnPrimary" id="btnExport">Copy Inputs</button>
+        <button class="btnPrimary" id="btnSavePDF">Save as PDF</button>
       </div>
     </header>
 
@@ -790,14 +905,14 @@ input:hover, select:hover{
                 <td colspan="2">
                   <div class="row2">
                     <div>
-                      <label class="label">Building Value %</label>
-                      <input id="buildingValuePct" type="number" min="0" step="0.1" placeholder="70">
-                      <span class="hint">Used only for depreciation estimate</span>
+                      <label class="label">Built Year</label>
+                      <input id="builtYear" type="number" min="1900" max="2099" step="1" placeholder="2000">
+                      <span class="hint">Year the property was built (post-1985 for Div 43 deduction)</span>
                     </div>
                     <div>
                       <label class="label">Depreciation Rate %</label>
                       <input id="deprRatePct" type="number" min="0" step="0.1" placeholder="2.5">
-                      <span class="hint">2.5% is a common estimate</span>
+                      <span class="hint">2.5% standard for Div 43 (40-year life)</span>
                     </div>
                   </div>
                 </td>
@@ -871,15 +986,15 @@ input:hover, select:hover{
               <thead><tr><th>Metric</th><th style="text-align:right">Value</th></tr></thead>
               <tbody>
                 <tr><td class="label">Deposit</td><td style="text-align:right" class="tiny" id="outDeposit">$0</td></tr>
-                <tr><td class="label">Loan Amount (start)</td><td style="text-align:right" class="tiny" id="outLoanAmt">$0</td></tr>
+                <tr><td class="label">Loan Amount</td><td style="text-align:right" class="tiny" id="outLoanAmt">$0</td></tr>
                 <tr><td class="label">LVR</td><td style="text-align:right" class="tiny" id="outLvr">0%</td></tr>
-                <tr><td class="label">LMI (auto)</td><td style="text-align:right" class="tiny" id="outLmi">$0</td></tr>
-                <tr><td class="label">Stamp Duty (auto)</td><td style="text-align:right" class="tiny" id="outDuty">$0</td></tr>
-                <tr><td class="label">Depreciation / yr (auto)</td><td style="text-align:right" class="tiny" id="outDepr">$0</td></tr>
+                <tr><td class="label">LMI</td><td style="text-align:right" class="tiny" id="outLmi">$0</td></tr>
+                <tr><td class="label">Stamp Duty</td><td style="text-align:right" class="tiny" id="outDuty">$0</td></tr>
+                <tr><td class="label">Depreciation / yr</td><td style="text-align:right" class="tiny" id="outDepr">$0</td></tr>
                 <tr><td class="label">Monthly cashflow (pre-tax)</td><td style="text-align:right" class="tiny" id="outCashPreTax">$0</td></tr>
-                <tr><td class="label">Taxable income / yr</td><td style="text-align:right" class="tiny" id="outTaxableIncome">$0</td></tr>
-                <tr><td class="label">Tax benefit / yr</td><td style="text-align:right" class="tiny" id="outTaxBenefit">$0</td></tr>
-                <tr style="border-top: 2px solid var(--gold);"><td class="label"><strong>Net cashflow / mo (after tax)</strong></td><td style="text-align:right" id="outNetCashMonthFinal"><strong>$0</strong></td></tr>
+                <tr><td class="label">Deduction on Taxable Income /yr</td><td style="text-align:right" class="tiny" id="outTaxableIncome">$0</td></tr>
+                <tr><td class="label" id="outTaxBenefitLabel">Tax benefit /yr</td><td style="text-align:right" class="tiny" id="outTaxBenefit">$0</td></tr>
+                <tr style="border-top: 2px solid var(--gold);"><td class="label"><strong>Net cashflow / mo (after tax deductions included)</strong></td><td style="text-align:right" id="outNetCashMonthFinal"><strong>$0</strong></td></tr>
               </tbody>
             </table>
 
@@ -1047,7 +1162,7 @@ function getInputs(){
     accountingYr: parseFloat($("accountingYr").value) || 0,
     superYr: parseFloat($("superYr").value) || 0,
 
-    buildingValuePct: parsePercentLoose($("buildingValuePct").value),
+    builtYear: parseInt($("builtYear").value) || 0,
     deprRatePct: parsePercentLoose($("deprRatePct").value),
 
     taxDeductRatio: parsePercentLoose($("taxDeductRatio").value),
@@ -1063,8 +1178,10 @@ function compute(i){
   const depositPct = clamp01(i.depositPct);
   const rentComm = clamp01(i.rentComm);
 
-  const buildingValuePct = clamp01(i.buildingValuePct || 0.70);
   const deprRatePct = clamp01(i.deprRatePct || 0.025);
+  const currentYear = new Date().getFullYear();
+  const buildingAge = i.builtYear > 0 ? currentYear - i.builtYear : 999;
+  const deprEligible = i.builtYear > 1985 && buildingAge < 40;
 
   const taxDeductWasBlank = $("taxDeductRatio").value.trim() === "";
   const taxDeductRatio = clamp01(taxDeductWasBlank ? 1 : i.taxDeductRatio);
@@ -1104,8 +1221,8 @@ function compute(i){
   const cashflowYrPreTax = netRentYr - annualExpense - i.superYr;
   const cashflowMonthPreTax = cashflowYrPreTax / 12;
 
-  // Depreciation is a tax deduction (non-cash)
-  const depreciationYr = i.purchasePrice * buildingValuePct * deprRatePct;
+  // Depreciation is a tax deduction (non-cash) — Div 43 capital works
+  const depreciationYr = deprEligible ? i.purchasePrice * 0.40 * deprRatePct : 0;
 
   // Tax-deductible expenses: interest (NOT principal) + operating + depreciation
   const deductibleExpenses = interestYr1 + operatingExpenses + depreciationYr;
@@ -1173,10 +1290,12 @@ function calculateYearCashflow(year, baseInputs, baseComputed){
   // Pre-tax cash flow
   const cashflowYrPreTax = netRentYr - annualExpense - baseInputs.superYr;
 
-  // Depreciation (decreases over time but we'll use a simplified approach)
-  const buildingValuePct = parsePercentLoose(baseInputs.buildingValuePct || 70);
+  // Depreciation — Div 43 capital works (eligible if built after 1985, within 40 years)
   const deprRatePct = parsePercentLoose(baseInputs.deprRatePct || 2.5);
-  const depreciationYr = baseInputs.purchasePrice * buildingValuePct * deprRatePct;
+  const builtYear = parseInt(baseInputs.builtYear) || 0;
+  const buildingAge = builtYear > 0 ? (new Date().getFullYear() + year) - builtYear : 999;
+  const deprEligible = builtYear > 1985 && buildingAge < 40;
+  const depreciationYr = deprEligible ? baseInputs.purchasePrice * 0.40 * deprRatePct : 0;
 
   const taxDeductRatio = parsePercentLoose(baseInputs.taxDeductRatio || 100);
   const taxRate = parsePercentLoose(baseInputs.taxRate);
@@ -1732,6 +1851,7 @@ function render(){
   $("outCashPreTaxHero").textContent = fmtSignedAUD(o.cashflowMonthPreTax, 2);
 
   $("outTaxableIncome").textContent = fmtSignedAUD(o.taxablePropertyIncome, 0);
+  $("outTaxBenefitLabel").textContent = `Tax benefit /yr (Based on ${(i.taxRate * 100).toFixed(0)}% tax rate)`;
   $("outTaxBenefit").textContent = fmtAUD2(o.taxBenefit);
   $("outNetCashMonthFinal").innerHTML = `<strong>${fmtSignedAUD(o.cashflowMonthAfterTax, 2)}</strong>`;
 
@@ -1759,7 +1879,7 @@ const sample = {
   maintenanceYr: 2000,
   accountingYr: 0,
   superYr: 0,
-  buildingValuePct: 0.70,
+  builtYear: 2000,
   deprRatePct: 0.025,
   taxDeductRatio: 1.00,
   taxRate: 0.30,
@@ -1788,7 +1908,7 @@ function setForm(v){
   $("accountingYr").value = v.accountingYr ?? 0;
   $("superYr").value = v.superYr ?? 0;
 
-  $("buildingValuePct").value = ((v.buildingValuePct ?? 0.70) * 100).toFixed(0);
+  $("builtYear").value = v.builtYear ?? 2000;
   $("deprRatePct").value = ((v.deprRatePct ?? 0.025) * 100).toFixed(2);
 
   $("taxDeductRatio").value = ((v.taxDeductRatio ?? 1) * 100).toFixed(0);
@@ -1805,7 +1925,7 @@ const inputs = [
   "address","state","purchasePrice","depositPct","interestRate","loanTermYears","loanType",
   "rentWeek","rentComm",
   "councilYr","buildingInsYr","landlordInsYr","maintenanceYr","accountingYr","superYr",
-  "buildingValuePct","deprRatePct","taxDeductRatio","taxRate",
+  "builtYear","deprRatePct","taxDeductRatio","taxRate",
   "capGrowthPct","rentGrowthPct","cashflowGrowthPct"
 ];
 
@@ -1845,17 +1965,7 @@ $("advancedHeader").addEventListener("click", () => {
 
 $("btnReset").addEventListener("click", () => setForm(sample));
 
-$("btnExport").addEventListener("click", async () => {
-  const json = JSON.stringify(getInputs(), null, 2);
-  try{
-    await navigator.clipboard.writeText(json);
-    alert("Copied inputs to clipboard.");
-  }catch(e){
-    const w = window.open();
-    w.document.write(`<pre>${json.replace(/[<>]/g, s => ({'<':'&lt;','>':'&gt;'}[s]))}</pre>`);
-    w.document.close();
-  }
-});
+$("btnSavePDF").addEventListener("click", () => window.print());
 
 window.addEventListener("load", () => setTimeout(() => setForm(sample), 0));
 
