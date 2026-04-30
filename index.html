@@ -674,7 +674,7 @@ input:hover, select:hover{
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     padding-bottom: 12px;
     border-bottom: 3px solid #1B4332;
     position: relative;
@@ -688,7 +688,7 @@ input:hover, select:hover{
     height: 2px;
     background: #D4AF37;
   }
-  #pdfHeaderLeft { flex: 1; }
+  #pdfHeaderLeft { flex: 1; min-width: 0; }
   #pdfHeaderTitle {
     font-family: "Host Grotesk", ui-sans-serif, system-ui, sans-serif;
     font-size: 20px;
@@ -699,26 +699,26 @@ input:hover, select:hover{
     letter-spacing: 0.4px;
   }
   #pdfHeaderSub {
-    font-size: 10.5px;
+    font-size: 10px;
     color: #6D7A7D;
     font-weight: 700;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
     margin-bottom: 5px;
   }
   #pdfHeaderMeta {
     font-size: 10px;
-    color: #101412;
+    color: #3a3a3a;
     font-weight: 500;
-    opacity: 0.72;
     line-height: 1.5;
+    word-break: break-word;
   }
   #pdfHeaderLogo {
-    height: 48px;
+    height: 46px;
     width: auto;
     display: block !important;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: 3px;
   }
 
   /* ── PDF Footer ── */
@@ -743,7 +743,7 @@ input:hover, select:hover{
     color: #1B4332;
     white-space: nowrap;
     text-align: right;
-    line-height: 1.5;
+    line-height: 1.6;
   }
 
   /* ── Cards ── */
@@ -753,6 +753,7 @@ input:hover, select:hover{
     border-radius: 8px !important;
     break-inside: avoid;
     margin-bottom: 10px;
+    overflow: hidden !important;
   }
   .card::before {
     height: 2.5px;
@@ -771,16 +772,25 @@ input:hover, select:hover{
   }
   .kpiHero::before { display: none !important; }
 
-  /* ── Layout grid ── */
-  .grid { grid-template-columns: 1.1fr 0.9fr !important; gap: 10px; }
-  .content { padding: 8px 12px !important; }
+  /* ── Layout grid: use explicit % to prevent overflow ── */
+  .grid {
+    display: grid !important;
+    grid-template-columns: 57% 41% !important;
+    gap: 8px !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  /* Prevent grid children from expanding beyond their column */
+  .grid > section { min-width: 0; }
+
+  .content { padding: 8px 10px !important; }
   .head {
-    padding: 7px 12px !important;
+    padding: 7px 10px !important;
     background: linear-gradient(180deg, rgba(27,67,50,.06), transparent) !important;
   }
   .head h2 { font-size: 11px; }
 
-  /* ── Inputs: render as plain text ── */
+  /* ── All inputs/selects: strip to plain text (base rule) ── */
   .card input,
   .card select {
     border: none !important;
@@ -797,64 +807,122 @@ input:hover, select:hover{
     -moz-appearance: none;
     appearance: none;
     pointer-events: none;
-    width: auto !important;
+    /* NOTE: display:inline here is intentionally overridden for row2/row3 below */
     display: inline !important;
+    width: auto !important;
   }
-  .card select { padding-right: 0 !important; }
   .card select::-ms-expand { display: none; }
 
-  /* ── Row2 / Row3 pairs ── */
+  /* ── Inputs table: fixed layout prevents cell-width blowout ── */
+  .table[aria-label="inputs"] {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .table[aria-label="inputs"] td:first-child  { width: 46%; }
+  .table[aria-label="inputs"] td:last-child   { width: 54%; }
+  .table[aria-label="inputs"] td              { border-bottom: 1px solid rgba(27,67,50,.07) !important; }
+  .table[aria-label="inputs"] td[colspan="2"] {
+    width: auto;
+    padding: 0 4px !important;
+    border-bottom: none !important;
+  }
+  /* Single-column value cells: right-align */
+  .table[aria-label="inputs"] td:last-child input,
+  .table[aria-label="inputs"] td:last-child select {
+    text-align: right !important;
+    width: 100% !important;
+    display: block !important;
+  }
+
+  /* ── Row2 / Row3 paired fields inside colspan cells ── */
   .row2, .row3 {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-    gap: 0 12px !important;
+    gap: 0 6px !important;
+    width: 100%;
   }
   .row2 > div, .row3 > div {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    padding: 3px 0;
+    padding: 4px 2px;
     border-bottom: 1px solid rgba(27,67,50,.07);
+    overflow: hidden;
   }
+  /* Stacked layout: label above value — reliable and clean */
   .row2 > div > label,
   .row3 > div > label {
+    display: block !important;
+    font-size: 8.5px !important;
+    color: #6D7A7D;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+  /* Override base 'display:inline' so the value sits on its own line */
+  .row2 > div > input,
+  .row3 > div > input {
+    display: block !important;
+    text-align: left !important;
+    font-size: 11px !important;
+    font-weight: 700;
+    color: #101412;
+    width: 100% !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── General table styling ── */
+  .table td, .table th { padding: 3.5px 6px !important; font-size: 10.5px; }
+  .table td.label {
     font-size: 10px !important;
     white-space: nowrap;
-    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .row2 > div > input,
-  .row3 > div > input { text-align: right !important; flex: 1; }
 
-  /* ── Inputs table ── */
-  .table td, .table th { padding: 3.5px 6px !important; font-size: 10.5px; }
-  .table td.label { font-size: 10px !important; white-space: nowrap; }
-  .table[aria-label="inputs"] td { border-bottom: 1px solid rgba(27,67,50,.07) !important; }
-  .table[aria-label="inputs"] input,
-  .table[aria-label="inputs"] select { text-align: right !important; }
-  .table[aria-label="inputs"] td[colspan] { padding: 0 6px !important; }
+  /* ── Details (outputs) table: fixed layout, full values visible ── */
+  .table[aria-label="details"] {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .table[aria-label="details"] th:first-child,
+  .table[aria-label="details"] td:first-child { width: 66%; }
+  .table[aria-label="details"] th:last-child,
+  .table[aria-label="details"] td:last-child  {
+    width: 34%;
+    text-align: right !important;
+    white-space: nowrap;
+    overflow: visible;
+  }
+  .table[aria-label="details"] .tiny { font-size: 10px !important; }
 
   /* ── KPI metrics ── */
   .kpi { gap: 6px !important; }
   .kpiCard .k { font-size: 10px !important; }
   .kpiCard .v { font-size: 15px !important; }
-  .kpiHero .v { font-size: 19px !important; }
+  .kpiHero .v { font-size: 18px !important; }
   .split { gap: 6px !important; }
   .hr { margin: 4px 0 !important; }
-
-  /* ── Details table ── */
-  .table[aria-label="details"] td,
-  .table[aria-label="details"] th { font-size: 10.5px; }
 
   /* ── Report line ── */
   #reportLine {
     font-size: 9px;
     margin-top: 6px;
     color: #6D7A7D;
+    word-break: break-word;
+    white-space: normal;
   }
 
   /* ── Advanced / Projection ── */
   #portfolioChart { max-height: 130px; break-inside: avoid; }
   #advancedContent { display: block !important; }
+  .table[aria-label="projection table"] {
+    table-layout: fixed;
+    width: 100%;
+  }
   .table[aria-label="projection table"] td,
   .table[aria-label="projection table"] th { font-size: 10px !important; }
 
