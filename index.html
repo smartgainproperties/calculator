@@ -644,28 +644,143 @@ input:hover, select:hover{
   }
 }
 
+/* ── Print-only elements: hidden on screen ── */
+#pdfHeader, #pdfFooter { display: none; }
+
 /* ── Print / Save-as-PDF ──────────────────────────── */
 @media print {
-  /* Reset page margins */
-  @page { margin: 12mm 10mm; size: A4; }
+  @page { margin: 14mm 12mm 18mm 12mm; size: A4; }
 
-  /* Hide non-essential elements */
+  /* ── Hide screen-only elements ── */
   .pattern, .modal-overlay, .actions, .badge,
-  .collapsible-toggle, .eyebrow, header p,
-  .footerNote:not(#reportLine):not(#chartCaption) { display: none !important; }
+  .collapsible-toggle, .eyebrow, header,
+  .footerNote:not(#reportLine):not(#chartCaption),
+  .hint { display: none !important; }
 
-  /* Remove background / shadow noise */
-  body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* ── Page base ── */
+  body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 11px;
+    font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+    color: #101412;
+  }
   .wrap { max-width: 100%; margin: 0; padding: 0; }
-  .card { box-shadow: none !important; border: 1px solid #ddd !important; border-radius: 10px !important; break-inside: avoid; margin-bottom: 10px; }
-  .kpiCard { box-shadow: none !important; border: 1px solid #ddd !important; }
-  .kpiHero { background: #f8f8f5 !important; }
+
+  /* ── PDF Header ── */
+  #pdfHeader {
+    display: flex !important;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid #1B4332;
+    position: relative;
+  }
+  #pdfHeader::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #D4AF37;
+  }
+  #pdfHeaderLeft { flex: 1; }
+  #pdfHeaderTitle {
+    font-family: "Host Grotesk", ui-sans-serif, system-ui, sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: #1B4332;
+    line-height: 1.2;
+    margin-bottom: 3px;
+    letter-spacing: 0.4px;
+  }
+  #pdfHeaderSub {
+    font-size: 10.5px;
+    color: #6D7A7D;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  #pdfHeaderMeta {
+    font-size: 10px;
+    color: #101412;
+    font-weight: 500;
+    opacity: 0.72;
+    line-height: 1.5;
+  }
+  #pdfHeaderLogo {
+    height: 48px;
+    width: auto;
+    display: block !important;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── PDF Footer ── */
+  #pdfFooter {
+    display: flex !important;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 14px;
+    padding-top: 8px;
+    border-top: 1px solid #ddd;
+  }
+  #pdfFooterDisclaimer {
+    flex: 1;
+    font-size: 8px;
+    color: #6D7A7D;
+    line-height: 1.5;
+  }
+  #pdfFooterBrand {
+    font-size: 9px;
+    font-weight: 700;
+    color: #1B4332;
+    white-space: nowrap;
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  /* ── Cards ── */
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    border-radius: 8px !important;
+    break-inside: avoid;
+    margin-bottom: 10px;
+  }
+  .card::before {
+    height: 2.5px;
+    opacity: 1;
+    background: linear-gradient(90deg, #1B4332 0%, #D4AF37 100%);
+  }
+  .kpiCard {
+    box-shadow: none !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 6px !important;
+    padding: 8px 10px !important;
+  }
+  .kpiHero {
+    background: #f6f4f1 !important;
+    border: 1px solid rgba(212,175,55,.40) !important;
+  }
   .kpiHero::before { display: none !important; }
 
-  /* Keep two-column grid but tighter */
-  .grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
+  /* ── Layout grid ── */
+  .grid { grid-template-columns: 1.1fr 0.9fr !important; gap: 10px; }
+  .content { padding: 8px 12px !important; }
+  .head {
+    padding: 7px 12px !important;
+    background: linear-gradient(180deg, rgba(27,67,50,.06), transparent) !important;
+  }
+  .head h2 { font-size: 11px; }
 
-  /* ── Inputs card: show values as plain text ── */
+  /* ── Inputs: render as plain text ── */
   .card input,
   .card select {
     border: none !important;
@@ -677,7 +792,7 @@ input:hover, select:hover{
     min-height: 0 !important;
     font-weight: 600;
     font-size: 11px !important;
-    color: var(--text);
+    color: #101412;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -688,7 +803,7 @@ input:hover, select:hover{
   .card select { padding-right: 0 !important; }
   .card select::-ms-expand { display: none; }
 
-  /* ── Row2 pairs: display as inline label: value ── */
+  /* ── Row2 / Row3 pairs ── */
   .row2, .row3 {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -699,7 +814,7 @@ input:hover, select:hover{
     align-items: baseline;
     gap: 6px;
     padding: 3px 0;
-    border-bottom: 1px solid rgba(27,67,50,.06);
+    border-bottom: 1px solid rgba(27,67,50,.07);
   }
   .row2 > div > label,
   .row3 > div > label {
@@ -708,55 +823,43 @@ input:hover, select:hover{
     min-width: 0;
   }
   .row2 > div > input,
-  .row3 > div > input {
-    text-align: right !important;
-    flex: 1;
-  }
+  .row3 > div > input { text-align: right !important; flex: 1; }
 
-  /* ── Inputs table: tight clean rows ── */
-  .table td, .table th { padding: 3px 6px !important; font-size: 11px; }
+  /* ── Inputs table ── */
+  .table td, .table th { padding: 3.5px 6px !important; font-size: 10.5px; }
   .table td.label { font-size: 10px !important; white-space: nowrap; }
-  .table[aria-label="inputs"] td { border-bottom: 1px solid rgba(27,67,50,.06) !important; }
+  .table[aria-label="inputs"] td { border-bottom: 1px solid rgba(27,67,50,.07) !important; }
   .table[aria-label="inputs"] input,
-  .table[aria-label="inputs"] select {
-    text-align: right !important;
-  }
-  /* Remove full-width colspan padding for row2 containers */
+  .table[aria-label="inputs"] select { text-align: right !important; }
   .table[aria-label="inputs"] td[colspan] { padding: 0 6px !important; }
 
-  .content { padding: 8px 12px !important; }
-  .head { padding: 6px 12px !important; }
-  .head h2 { font-size: 13px; }
-
-  /* Compact KPI cards */
+  /* ── KPI metrics ── */
   .kpi { gap: 6px !important; }
-  .kpiCard { padding: 8px 10px !important; border-radius: 8px !important; }
   .kpiCard .k { font-size: 10px !important; }
-  .kpiCard .v { font-size: 16px !important; }
-  .kpiHero .v { font-size: 20px !important; }
+  .kpiCard .v { font-size: 15px !important; }
+  .kpiHero .v { font-size: 19px !important; }
   .split { gap: 6px !important; }
   .hr { margin: 4px 0 !important; }
 
-  /* Hints – hide in print */
-  .hint { display: none !important; }
+  /* ── Details table ── */
+  .table[aria-label="details"] td,
+  .table[aria-label="details"] th { font-size: 10.5px; }
 
-  /* Report line at bottom */
-  #reportLine { font-size: 9px; margin-top: 6px; }
+  /* ── Report line ── */
+  #reportLine {
+    font-size: 9px;
+    margin-top: 6px;
+    color: #6D7A7D;
+  }
 
-  /* Advanced / projection section */
-  #portfolioChart { max-height: 140px; break-inside: avoid; }
+  /* ── Advanced / Projection ── */
+  #portfolioChart { max-height: 130px; break-inside: avoid; }
   #advancedContent { display: block !important; }
+  .table[aria-label="projection table"] td,
+  .table[aria-label="projection table"] th { font-size: 10px !important; }
 
-  /* Header – compact */
-  header { margin-bottom: 8px !important; }
-  header h1 { font-size: 18px !important; margin: 0 !important; }
-  .brandLogo { height: 28px !important; }
-  .brandline { margin-bottom: 4px; }
-
-  /* Prevent orphan rows */
+  /* ── Misc ── */
   tr { break-inside: avoid; }
-
-  /* Links – no underline */
   a { text-decoration: none !important; color: inherit !important; }
 }
   </style>
@@ -793,6 +896,17 @@ input:hover, select:hover{
   <div class="pattern" aria-hidden="true"></div>
 
   <div class="wrap">
+
+    <!-- Print-only PDF header (hidden on screen) -->
+    <div id="pdfHeader" aria-hidden="true">
+      <div id="pdfHeaderLeft">
+        <div id="pdfHeaderTitle">Investment Cashflow Portal</div>
+        <div id="pdfHeaderSub">Property Analysis Report</div>
+        <div id="pdfHeaderMeta"></div>
+      </div>
+      <img src="Logo Full - Color.png" alt="Smart Gain Properties" id="pdfHeaderLogo">
+    </div>
+
     <header>
       <div class="title">
         <div class="brandline">
@@ -1055,6 +1169,21 @@ input:hover, select:hover{
         </div>
       </div>
     </section>
+
+    <!-- Print-only PDF footer (hidden on screen) -->
+    <div id="pdfFooter" aria-hidden="true">
+      <div id="pdfFooterDisclaimer">
+        This report is for informational and illustrative purposes only and does not constitute financial, investment, or legal advice.
+        Calculations are based on simplified assumptions and may not reflect actual costs or returns. Always consult with qualified
+        financial, legal, and tax professionals before making investment decisions. Smart Gain Properties assumes no liability
+        for decisions made based on this information.
+      </div>
+      <div id="pdfFooterBrand">
+        Smart Gain Properties<br>
+        <span style="font-weight:400; color:#6D7A7D;" id="pdfFooterDate"></span>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -1965,7 +2094,17 @@ $("advancedHeader").addEventListener("click", () => {
 
 $("btnReset").addEventListener("click", () => setForm(sample));
 
-$("btnSavePDF").addEventListener("click", () => window.print());
+$("btnSavePDF").addEventListener("click", () => {
+  const i = getInputs();
+  const o = compute(i);
+  const addr = i.address || "Property";
+  const now = new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
+  const ir = (i.interestRate * 100).toFixed(2);
+  document.getElementById("pdfHeaderMeta").textContent =
+    `${addr}  (${i.state})  •  Purchase ${fmtAUD0(i.purchasePrice)}  •  Rate ${ir}%  •  Generated ${now}`;
+  document.getElementById("pdfFooterDate").textContent = now;
+  window.print();
+});
 
 window.addEventListener("load", () => setTimeout(() => setForm(sample), 0));
 
