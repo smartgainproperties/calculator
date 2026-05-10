@@ -1936,10 +1936,10 @@ function initOnboardingFlow(){
     { id:'loanType', q:'Should we model this loan as Principal & Interest or Interest Only?', type:'select', target:'loanType', options:[{v:'PI',l:'Principal & Interest'},{v:'IO',l:'Interest Only'}] },
     { id:'state', q:'Which state are you planning to buy in?', type:'select', target:'state', options:['QLD','NSW','VIC','SA','WA','TAS','ACT','NT'].map(s=>({v:s,l:s})) },
     { id:'rentWeek', q:'What weekly rent should we use for the new purchase?', type:'number', target:'rentWeek' },
-    { id:'rentComm', q:'Do you know the property management fee for the area, or should we use the default of 8%?', type:'number', target:'rentComm', defaultValue:'8', allowDefault:true },
-    { id:'councilYr', q:'What yearly council rates should we use for the new property?', type:'number', target:'councilYr', defaultValue:'4000', allowDefault:true },
-    { id:'buildingInsYr', q:'Do you know what the building insurance cost will be per year?', type:'number', target:'buildingInsYr', defaultValue:'1000', allowDefault:true },
-    { id:'landlordInsYr', q:'What annual amount should we use for landlord insurance?', type:'number', target:'landlordInsYr', defaultValue:'450', allowDefault:true },
+    { id:'rentComm', q:'Do you know the property management fee for the area, or should we use the default of 8%?', type:'number', target:'rentComm' , defaultValue:'8' },
+    { id:'councilYr', q:'What yearly council rates should we use for the new property?', type:'number', target:'councilYr' , defaultValue:'4000' },
+    { id:'buildingInsYr', q:'Do you know what the building insurance cost will be per year?', type:'number', target:'buildingInsYr' , defaultValue:'1000' },
+    { id:'landlordInsYr', q:'What annual amount should we use for landlord insurance?', type:'number', target:'landlordInsYr' , defaultValue:'450' },
     { id:'maintenanceYr', q:'How much would you like to set aside for maintenance each year?', type:'number', target:'maintenanceYr', defaultValue:'1500' }
   ];
 
@@ -1954,22 +1954,12 @@ function initOnboardingFlow(){
     let field = '';
     if (s.type === 'number'){
       const val = state.answers[s.id] ?? s.defaultValue ?? '';
-      const defaultBtn = s.allowDefault ? `<button type="button" class="modal-btn modal-btn-secondary" id="onboardingDefault">OR Use Default Value</button>` : '';
-      field = `<div class="onboarding-field"><label>${s.q}</label><input id="onboardingInput" type="number" value="${val}">${defaultBtn}</div>`;
+      field = `<div class="onboarding-field"><label>${s.q}</label><input id="onboardingInput" type="number" value="${val}"></div>`;
     } else if (s.type === 'select'){
       const opts = s.options.map(o => `<option value="${o.v}" ${(state.answers[s.id]===o.v)?'selected':''}>${o.l}</option>`).join('');
       field = `<div class="onboarding-field"><label>${s.q}</label><select id="onboardingInput">${opts}</select></div>`;
     }
     content.innerHTML = field;
-    if (s.type === 'number' && s.allowDefault){
-      const defaultBtn = $("onboardingDefault");
-      if (defaultBtn){
-        defaultBtn.onclick = () => {
-          const input = $("onboardingInput");
-          if (input) input.value = s.defaultValue ?? '';
-        };
-      }
-    }
   }
   function applyAnswers(){
     if (state.answers.depositType === 'equity'){
