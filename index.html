@@ -1932,7 +1932,7 @@ function initOnboardingFlow(){
     { id:'depositType', q:'Are you planning to use equity or savings for your deposit?', type:'select', options:[{v:'savings',l:'Savings'},{v:'equity',l:'Equity'}] },
     { id:'depositPct', q:'How much of a deposit are you planning to put down?', type:'number', target:'depositPct', show:() => state.answers.depositType !== 'equity' },
     { id:'interestRate', q:'What interest rate should we use for this new purchase?', type:'number', target:'interestRate' },
-    { id:'loanTermYears', q:'How long will the loan term be? For example, 30 years.', type:'number', target:'loanTermYears' },
+    { id:'loanTermYears', q:'How long will the loan term be?', type:'number', target:'loanTermYears', defaultValue:'30' },
     { id:'loanType', q:'Should we model this loan as Principal & Interest or Interest Only?', type:'select', target:'loanType', options:[{v:'PI',l:'Principal & Interest'},{v:'IO',l:'Interest Only'}] },
     { id:'state', q:'Which state are you planning to buy in?', type:'select', target:'state', options:['QLD','NSW','VIC','SA','WA','TAS','ACT','NT'].map(s=>({v:s,l:s})) },
     { id:'rentWeek', q:'What weekly rent should we use for the new purchase?', type:'number', target:'rentWeek' },
@@ -1955,9 +1955,12 @@ function initOnboardingFlow(){
     if (s.type === 'number'){
       const val = state.answers[s.id] ?? s.defaultValue ?? '';
       const isPercent = ['depositPct','interestRate','rentComm'].includes(s.id);
+      const isCurrency = ['purchasePrice','rentWeek','councilYr','buildingInsYr','landlordInsYr','maintenanceYr','accountingYr'].includes(s.id);
       const inputHtml = isPercent
         ? `<div style="display:flex;align-items:center;gap:8px;"><input id="onboardingInput" type="number" value="${val}"><span style="font-weight:700;color:var(--muted);">%</span></div>`
-        : `<input id="onboardingInput" type="number" value="${val}">`;
+        : isCurrency
+          ? `<div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:700;color:var(--muted);">$</span><input id="onboardingInput" type="number" value="${val}"></div>`
+          : `<input id="onboardingInput" type="number" value="${val}">`;
       field = `<div class="onboarding-field"><label>${s.q}</label>${inputHtml}</div>`;
     } else if (s.type === 'select'){
       const opts = s.options.map(o => `<option value="${o.v}" ${(state.answers[s.id]===o.v)?'selected':''}>${o.l}</option>`).join('');
