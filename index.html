@@ -1771,7 +1771,7 @@ function render(){
   $("outInterestOnly").textContent = fmtAUD2(o.interestPortionMonth1);
   $("outNetRentYr").textContent = fmtAUD0(o.netRentYr);
   $("outYield").textContent = fmtPct(o.yieldGross);
-  $("outExpenseYr").textContent = fmtOutflowAUD(o.annualExpense, 0);
+  $("outExpenseYr").textContent = fmtAUD0(o.annualExpense);
   $("outCashflowYrPreTax").textContent = fmtSignedAUD(o.cashflowYrPreTax, 0);
   $("outCashPreTax").textContent = fmtSignedAUD(o.cashflowMonthPreTax, 2);
   $("outCashPreTaxHero").textContent = fmtSignedAUD(o.cashflowMonthPreTax, 2);
@@ -1936,7 +1936,7 @@ function initOnboardingFlow(){
     { id:'loanType', q:'Should we model this loan as Principal & Interest or Interest Only?', type:'select', target:'loanType', options:[{v:'PI',l:'Principal & Interest'},{v:'IO',l:'Interest Only'}] },
     { id:'state', q:'Which state are you planning to buy in?', type:'select', target:'state', options:['QLD','NSW','VIC','SA','WA','TAS','ACT','NT'].map(s=>({v:s,l:s})) },
     { id:'rentWeek', q:'What weekly rent should we use for the new purchase?', type:'number', target:'rentWeek' },
-    { id:'rentComm', q:'Do you know the property management fee for the area, or should we use the default of 8%?', type:'number', target:'rentComm' , defaultValue:'8' },
+    { id:'rentComm', q:'Do you know the property management fee for the area?', type:'number', target:'rentComm' , defaultValue:'8' },
     { id:'councilYr', q:'What yearly council rates should we use for the new property?', type:'number', target:'councilYr' , defaultValue:'4000' },
     { id:'buildingInsYr', q:'Do you know what the building insurance cost will be per year?', type:'number', target:'buildingInsYr' , defaultValue:'1000' },
     { id:'landlordInsYr', q:'What annual amount should we use for landlord insurance?', type:'number', target:'landlordInsYr' , defaultValue:'450' },
@@ -1954,7 +1954,11 @@ function initOnboardingFlow(){
     let field = '';
     if (s.type === 'number'){
       const val = state.answers[s.id] ?? s.defaultValue ?? '';
-      field = `<div class="onboarding-field"><label>${s.q}</label><input id="onboardingInput" type="number" value="${val}"></div>`;
+      const isPercent = ['depositPct','interestRate','rentComm'].includes(s.id);
+      const inputHtml = isPercent
+        ? `<div style="display:flex;align-items:center;gap:8px;"><input id="onboardingInput" type="number" value="${val}"><span style="font-weight:700;color:var(--muted);">%</span></div>`
+        : `<input id="onboardingInput" type="number" value="${val}">`;
+      field = `<div class="onboarding-field"><label>${s.q}</label>${inputHtml}</div>`;
     } else if (s.type === 'select'){
       const opts = s.options.map(o => `<option value="${o.v}" ${(state.answers[s.id]===o.v)?'selected':''}>${o.l}</option>`).join('');
       field = `<div class="onboarding-field"><label>${s.q}</label><select id="onboardingInput">${opts}</select></div>`;
