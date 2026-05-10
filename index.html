@@ -1930,15 +1930,15 @@ function initOnboardingFlow(){
   const steps = [
     { id:'purchasePrice', q:"What's the expected price of your new investment property?", type:'number', target:'purchasePrice' },
     { id:'depositType', q:'Are you planning to use equity or savings for your deposit?', type:'select', options:[{v:'savings',l:'Savings'},{v:'equity',l:'Equity'}] },
-    { id:'depositPct', q:'How much deposit are you thinking to put down?', type:'number', target:'depositPct', show:() => state.answers.depositType !== 'equity' },
-    { id:'interestRate', q:'What will be your expected interest rate for new purchase?', type:'number', target:'interestRate' },
-    { id:'loanTermYears', q:'How long will the loan be for? 30 years?', type:'number', target:'loanTermYears' },
-    { id:'loanType', q:'Will the loan be Principal and Interest or Interest only?', type:'select', target:'loanType', options:[{v:'PI',l:'Principal & Interest'},{v:'IO',l:'Interest Only'}] },
+    { id:'depositPct', q:'How much of a deposit are you planning to put down?', type:'number', target:'depositPct', show:() => state.answers.depositType !== 'equity' },
+    { id:'interestRate', q:'What interest rate should we use for this new purchase?', type:'number', target:'interestRate' },
+    { id:'loanTermYears', q:'How long will the loan term be? For example, 30 years.', type:'number', target:'loanTermYears' },
+    { id:'loanType', q:'Should we model this loan as Principal & Interest or Interest Only?', type:'select', target:'loanType', options:[{v:'PI',l:'Principal & Interest'},{v:'IO',l:'Interest Only'}] },
     { id:'state', q:'Which state are you planning to buy in?', type:'select', target:'state', options:['QLD','NSW','VIC','SA','WA','TAS','ACT','NT'].map(s=>({v:s,l:s})) },
-    { id:'rentWeek', q:'What will be the weekly rent of the new purchase?', type:'number', target:'rentWeek' },
-    { id:'rentComm', q:'Do you know the property management fees for the area? Or we can go with the default of 8%.', type:'number', target:'rentComm', defaultValue:'8' },
-    { id:'councilYr', q:'Expected yearly council rates for new property?', type:'number', target:'councilYr' },
-    { id:'buildingInsYr', q:'Do you know what will be the building insurance cost per year?', type:'number', target:'buildingInsYr' },
+    { id:'rentWeek', q:'What weekly rent should we use for the new purchase?', type:'number', target:'rentWeek' },
+    { id:'rentComm', q:'Do you know the property management fee for the area, or should we use the default of 8%?', type:'number', target:'rentComm', defaultValue:'8' },
+    { id:'councilYr', q:'What yearly council rates should we use for the new property?', type:'number', target:'councilYr' },
+    { id:'buildingInsYr', q:'Do you know what the building insurance cost will be per year?', type:'number', target:'buildingInsYr' },
     { id:'landlordInsYr', q:'What annual amount should we use for landlord insurance?', type:'number', target:'landlordInsYr' },
     { id:'maintenanceYr', q:'How much would you like to set aside for maintenance each year?', type:'number', target:'maintenanceYr', defaultValue:'1500' }
   ];
