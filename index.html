@@ -1122,7 +1122,7 @@ input:hover, select:hover{
             <div class="kpiCard kpiHero">
               <div class="k">Monthly Cashflow (pre-tax)</div>
               <div class="v" id="outCashPreTaxHero">$0</div>
-              <div class="hint">Negative = out-of-pocket (shown in brackets)</div>
+              <div class="hint">Negative = out-of-pocket (shown with a minus sign)</div>
             </div>
             <div class="hr"></div>
             <table class="table" aria-label="details">
@@ -1218,13 +1218,13 @@ const fmtPct  = (n) => ((isFinite(n) ? n : 0) * 100).toFixed(2) + "%";
 function fmtSignedAUD(n, decimals=2){
   const v = isFinite(n) ? n : 0;
   const abs = Math.abs(v).toLocaleString("en-AU", { style:"currency", currency:"AUD", maximumFractionDigits:decimals });
-  if (v < 0) return "(" + abs + ")";
+  if (v < 0) return "-" + abs;
   return abs;
 }
 function fmtOutflowAUD(n, decimals=0){
   const v = isFinite(n) ? Math.abs(n) : 0;
   const abs = v.toLocaleString("en-AU", { style:"currency", currency:"AUD", maximumFractionDigits:decimals });
-  return "(" + abs + ")";
+  return "-" + abs;
 }
 
 function pmt(rate, nper, pv){
@@ -1995,21 +1995,47 @@ function initOnboardingFlow(){
     $("guideChoice").onclick = () => { state.mode = 'guided'; state.step = 0; nextBtn.style.display = 'inline-block'; renderStep(); };
     $("directChoice").onclick = () => { onboardingModal.classList.remove('active'); };
   }
+
+  function renderSummary(){
+    applyAnswers();
+    const i = getInputs();
+    const o = compute(i);
+    title.innerHTML = '<span class="modal-icon" aria-hidden="true">&#9989;</span>Smart Gain Properties Setup';
+    progress.textContent = 'Summary';
+    backBtn.style.display = 'inline-block';
+    nextBtn.textContent = 'Open Calculator';
+    content.innerHTML = `
+      <div class="onboarding-field">
+        <label>Monthly Cashflow (pre-tax)</label>
+        <div style="font-size:30px;font-weight:800;color:var(--green);">${fmtSignedAUD(o.cashflowMonthPreTax, 2)}</div>
+        <div class="onboarding-helper">Negative = out-of-pocket (shown with a minus sign).</div>
+      </div>`;
+  }
+
   nextBtn.addEventListener('click', () => {
+    if (state.step === 999){
+      onboardingModal.classList.remove('active');
+      return;
+    }
     const vis = visibleSteps();
     const s = vis[state.step];
     const v = $("onboardingInput")?.value?.trim();
     if (!v) return;
     state.answers[s.id] = v;
     if (state.step >= vis.length - 1){
-      applyAnswers();
-      onboardingModal.classList.remove('active');
+      state.step = 999;
+      renderSummary();
       return;
     }
     state.step += 1;
     renderStep();
   });
   backBtn.addEventListener('click', () => {
+    if (state.step === 999){
+      state.step = visibleSteps().length - 1;
+      renderStep();
+      return;
+    }
     if (state.step > 0){ state.step -= 1; renderStep(); }
   });
   setTimeout(() => { warningModal.classList.add('active'); }, 300);
