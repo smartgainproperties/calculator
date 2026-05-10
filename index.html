@@ -589,6 +589,17 @@ input:hover, select:hover{
   transition: left 0.3s ease;
 }
 .modal-btn:hover::before{ left: 100%; }
+.modal-btn-secondary{
+  background: rgba(27,67,50,.06);
+  color: var(--green);
+  border: 1px solid var(--line);
+}
+.onboarding-stack{ display:grid; gap: 12px; }
+.onboarding-choice{ display:grid; gap:10px; }
+.onboarding-field{ display:grid; gap:8px; }
+.onboarding-field label{ font-weight:700; color: var(--green); font-size: 13px; }
+.onboarding-helper{ color: var(--muted); font-size: 12px; }
+.onboarding-progress{ color: var(--muted); font-size:12px; font-weight:700; }
 @media (max-width: 640px){
   .modal-overlay{ padding: 12px; }
   .modal-dialog{ max-width: 100%; max-height: calc(100vh - 24px); }
@@ -907,6 +918,22 @@ input:hover, select:hover{
     </div>
   </div>
 
+  <div class="modal-overlay" id="onboardingModal" role="dialog" aria-labelledby="onboardingTitle" aria-describedby="onboardingDesc">
+    <div class="modal-dialog" role="document">
+      <div class="modal-header">
+        <h3 id="onboardingTitle"><span class="modal-icon" aria-hidden="true">&#128221;</span>Smart Gain Properties Setup</h3>
+        <p class="modal-subtitle" id="onboardingProgress">Step 1</p>
+      </div>
+      <div class="modal-body" id="onboardingDesc">
+        <div id="onboardingContent" class="onboarding-stack"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-secondary" id="onboardingBack" style="display:none;">Back</button>
+        <button class="modal-btn" id="onboardingNext">Continue</button>
+      </div>
+    </div>
+  </div>
+
   <div class="pattern" aria-hidden="true"></div>
 
   <div class="wrap">
@@ -1015,7 +1042,7 @@ input:hover, select:hover{
                   <div class="row2">
                     <div>
                       <label class="label">Landlord Insurance / yr</label>
-                      <input id="landlordInsYr" type="number" min="0" step="50" placeholder="350">
+                      <input id="landlordInsYr" type="number" min="0" step="50" placeholder="450">
                     </div>
                     <div>
                       <label class="label">Maintenance / yr</label>
@@ -1095,7 +1122,7 @@ input:hover, select:hover{
             <div class="kpiCard kpiHero">
               <div class="k">Monthly Cashflow (pre-tax)</div>
               <div class="v" id="outCashPreTaxHero">$0</div>
-              <div class="hint">Negative = out-of-pocket (shown in brackets)</div>
+              <div class="hint">Negative = out-of-pocket (shown with a minus sign)</div>
             </div>
             <div class="hr"></div>
             <table class="table" aria-label="details">
@@ -1191,13 +1218,13 @@ const fmtPct  = (n) => ((isFinite(n) ? n : 0) * 100).toFixed(2) + "%";
 function fmtSignedAUD(n, decimals=2){
   const v = isFinite(n) ? n : 0;
   const abs = Math.abs(v).toLocaleString("en-AU", { style:"currency", currency:"AUD", maximumFractionDigits:decimals });
-  if (v < 0) return "(" + abs + ")";
+  if (v < 0) return "-" + abs;
   return abs;
 }
 function fmtOutflowAUD(n, decimals=0){
   const v = isFinite(n) ? Math.abs(n) : 0;
   const abs = v.toLocaleString("en-AU", { style:"currency", currency:"AUD", maximumFractionDigits:decimals });
-  return "(" + abs + ")";
+  return "-" + abs;
 }
 
 function pmt(rate, nper, pv){
@@ -1731,7 +1758,7 @@ function render(){
   $("outDepr").textContent = fmtAUD0(o.depreciationYr);
   $("outCashRequired").textContent = fmtAUD0(o.cashRequired);
   $("outCashRequiredSub").textContent = o.isEquityDeposit
-    ? `Funded via equity — 105% LVR (no cash required)`
+    ? `Funded via equity — estimated equity required ${fmtAUD0(i.purchasePrice * 0.20)} (20% benchmark)`
     : `Deposit ${fmtAUD0(o.deposit)} + LMI ${fmtAUD0(o.lmi)} + Duty ${fmtAUD0(o.stampDuty)}`;
 
   if (o.isInterestOnly) {
@@ -1744,7 +1771,7 @@ function render(){
   $("outInterestOnly").textContent = fmtAUD2(o.interestPortionMonth1);
   $("outNetRentYr").textContent = fmtAUD0(o.netRentYr);
   $("outYield").textContent = fmtPct(o.yieldGross);
-  $("outExpenseYr").textContent = fmtOutflowAUD(o.annualExpense, 0);
+  $("outExpenseYr").textContent = fmtAUD0(o.annualExpense);
   $("outCashflowYrPreTax").textContent = fmtSignedAUD(o.cashflowYrPreTax, 0);
   $("outCashPreTax").textContent = fmtSignedAUD(o.cashflowMonthPreTax, 2);
   $("outCashPreTaxHero").textContent = fmtSignedAUD(o.cashflowMonthPreTax, 2);
@@ -1773,7 +1800,7 @@ const sample = {
   rentComm: 0.08,
   councilYr: 4000,
   buildingInsYr: 1000,
-  landlordInsYr: 350,
+  landlordInsYr: 450,
   maintenanceYr: 2000,
   accountingYr: 0,
   superYr: 0,
@@ -1888,13 +1915,144 @@ $("btnSavePDF").addEventListener("click", () => {
 
 window.addEventListener("load", () => setTimeout(() => setForm(sample), 0));
 
-(function initWarningModal(){
-  const modal = $('warningModal');
+function initOnboardingFlow(){
+  const warningModal = $('warningModal');
   const acceptBtn = $('acceptWarning');
-  if (!modal || !acceptBtn) return;
-  setTimeout(() => { modal.classList.add('active'); }, 300);
-  acceptBtn.addEventListener('click', () => { modal.classList.remove('active'); });
-})();
+  const onboardingModal = $('onboardingModal');
+  const content = $('onboardingContent');
+  const title = $('onboardingTitle');
+  const progress = $('onboardingProgress');
+  const nextBtn = $('onboardingNext');
+  const backBtn = $('onboardingBack');
+  if (!warningModal || !acceptBtn || !onboardingModal || !content || !nextBtn || !backBtn) return;
+
+  const state = { step: -1, mode: null, answers: {} };
+  const steps = [
+    { id:'purchasePrice', q:"What's the expected price of your new investment property?", type:'number', target:'purchasePrice' },
+    { id:'depositType', q:'Are you planning to use equity or savings for your deposit?', type:'select', options:[{v:'savings',l:'Savings'},{v:'equity',l:'Equity'}] },
+    { id:'depositPct', q:'How much of a deposit are you planning to put down?', type:'number', target:'depositPct', show:() => state.answers.depositType !== 'equity' },
+    { id:'interestRate', q:'What interest rate should we use for this new purchase?', type:'number', target:'interestRate' },
+    { id:'loanTermYears', q:'How long will the loan term be?', type:'number', target:'loanTermYears', defaultValue:'30' },
+    { id:'loanType', q:'Should we model this loan as Principal & Interest or Interest Only?', type:'select', target:'loanType', options:[{v:'PI',l:'Principal & Interest'},{v:'IO',l:'Interest Only'}] },
+    { id:'state', q:'Which state are you planning to buy in?', type:'select', target:'state', options:['QLD','NSW','VIC','SA','WA','TAS','ACT','NT'].map(s=>({v:s,l:s})) },
+    { id:'rentWeek', q:'What weekly rent should we use for the new purchase?', type:'number', target:'rentWeek' },
+    { id:'rentComm', q:'Do you know the property management fee for the area?', type:'number', target:'rentComm' , defaultValue:'8' },
+    { id:'councilYr', q:'What yearly council rates should we use for the new property?', type:'number', target:'councilYr' , defaultValue:'4000' },
+    { id:'buildingInsYr', q:'Do you know what the building insurance cost will be per year?', type:'number', target:'buildingInsYr' , defaultValue:'1000' },
+    { id:'landlordInsYr', q:'What annual amount should we use for landlord insurance?', type:'number', target:'landlordInsYr' , defaultValue:'450' },
+    { id:'maintenanceYr', q:'How much would you like to set aside for maintenance each year?', type:'number', target:'maintenanceYr', defaultValue:'1500' }
+  ];
+
+  function visibleSteps(){ return steps.filter(s => !s.show || s.show()); }
+  function renderStep(){
+    const vis = visibleSteps();
+    const s = vis[state.step];
+    title.innerHTML = '<span class="modal-icon" aria-hidden="true">&#128221;</span>Smart Gain Properties Setup';
+    progress.textContent = `Question ${state.step + 1} of ${vis.length}`;
+    backBtn.style.display = state.step > 0 ? 'inline-block' : 'none';
+    nextBtn.textContent = state.step === vis.length - 1 ? 'Apply to Calculator' : 'Continue';
+    let field = '';
+    if (s.type === 'number'){
+      const val = state.answers[s.id] ?? s.defaultValue ?? '';
+      const isPercent = ['depositPct','interestRate','rentComm'].includes(s.id);
+      const isCurrency = ['purchasePrice','rentWeek','councilYr','buildingInsYr','landlordInsYr','maintenanceYr','accountingYr'].includes(s.id);
+      const inputHtml = isPercent
+        ? `<div style="display:flex;align-items:center;gap:8px;"><input id="onboardingInput" type="number" value="${val}"><span style="font-weight:700;color:var(--muted);">%</span></div>`
+        : isCurrency
+          ? `<div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:700;color:var(--muted);">$</span><input id="onboardingInput" type="number" value="${val}"></div>`
+          : `<input id="onboardingInput" type="number" value="${val}">`;
+      field = `<div class="onboarding-field"><label>${s.q}</label>${inputHtml}</div>`;
+    } else if (s.type === 'select'){
+      const opts = s.options.map(o => `<option value="${o.v}" ${(state.answers[s.id]===o.v)?'selected':''}>${o.l}</option>`).join('');
+      field = `<div class="onboarding-field"><label>${s.q}</label><select id="onboardingInput">${opts}</select></div>`;
+    }
+    content.innerHTML = field;
+  }
+  function applyAnswers(){
+    if (state.answers.depositType === 'equity'){
+      $("equityDeposit").checked = true;
+      $("depositPct").disabled = true;
+      $("depositPct").value = "20";
+    } else {
+      $("equityDeposit").checked = false;
+      $("depositPct").disabled = false;
+    }
+    const percentFields = new Set(['depositPct','interestRate','rentComm']);
+    for (const s of steps){
+      if (!s.target) continue;
+      const ans = state.answers[s.id];
+      if (ans === undefined || ans === null || ans === '') continue;
+      const el = $(s.target);
+      if (!el) continue;
+      el.value = percentFields.has(s.target) ? ans : ans;
+    }
+    render();
+  }
+  function openChoice(){
+    state.step = -1;
+    progress.textContent = 'Start';
+    backBtn.style.display = 'none';
+    nextBtn.style.display = 'none';
+    content.innerHTML = `
+      <div class="onboarding-choice">
+        <label>Before we proceed, would you like us to guide you through the setup, or would you prefer to go straight to the calculator?</label>
+        <button class="modal-btn" id="guideChoice">Guide me through it</button>
+        <button class="modal-btn modal-btn-secondary" id="directChoice">I'll go straight to calculator</button>
+      </div>`;
+    $("guideChoice").onclick = () => { state.mode = 'guided'; state.step = 0; nextBtn.style.display = 'inline-block'; renderStep(); };
+    $("directChoice").onclick = () => { onboardingModal.classList.remove('active'); };
+  }
+
+  function renderSummary(){
+    applyAnswers();
+    const i = getInputs();
+    const o = compute(i);
+    title.innerHTML = '<span class="modal-icon" aria-hidden="true">&#9989;</span>Smart Gain Properties Setup';
+    progress.textContent = 'Summary';
+    backBtn.style.display = 'inline-block';
+    nextBtn.textContent = 'Open Calculator';
+    content.innerHTML = `
+      <div class="onboarding-field">
+        <label>Monthly Cashflow (pre-tax)</label>
+        <div style="font-size:30px;font-weight:800;color:var(--green);">${fmtSignedAUD(o.cashflowMonthPreTax, 2)}</div>
+        <div class="onboarding-helper">Negative = out-of-pocket (shown with a minus sign).</div>
+      </div>`;
+  }
+
+  nextBtn.addEventListener('click', () => {
+    if (state.step === 999){
+      onboardingModal.classList.remove('active');
+      return;
+    }
+    const vis = visibleSteps();
+    const s = vis[state.step];
+    const v = $("onboardingInput")?.value?.trim();
+    if (!v) return;
+    state.answers[s.id] = v;
+    if (state.step >= vis.length - 1){
+      state.step = 999;
+      renderSummary();
+      return;
+    }
+    state.step += 1;
+    renderStep();
+  });
+  backBtn.addEventListener('click', () => {
+    if (state.step === 999){
+      state.step = visibleSteps().length - 1;
+      renderStep();
+      return;
+    }
+    if (state.step > 0){ state.step -= 1; renderStep(); }
+  });
+  setTimeout(() => { warningModal.classList.add('active'); }, 300);
+  acceptBtn.addEventListener('click', () => {
+    warningModal.classList.remove('active');
+    onboardingModal.classList.add('active');
+    openChoice();
+  });
+}
+initOnboardingFlow();
   </script>
 </body>
 </html>
