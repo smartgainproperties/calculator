@@ -623,6 +623,40 @@ input:hover, select:hover{
   border-radius: 12px;
   background: #fff;
 }
+.leadgate-form{
+  background: linear-gradient(180deg, #173e2f, #1B4332);
+  border: 1px solid rgba(212,175,55,.35);
+  border-radius: 14px;
+  padding: 18px;
+  color: #F1EDEB;
+  display: grid;
+  gap: 12px;
+}
+.leadgate-form h4{
+  margin: 0 0 4px 0;
+  color: var(--gold);
+  font-family: var(--font-head);
+  font-size: 18px;
+}
+.leadgate-grid{ display:grid; gap: 10px; }
+.leadgate-grid label{ font-weight:700; color: #f5e2a2; font-size: 13px; }
+.leadgate-grid input{
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+.leadgate-captcha-row{
+  display:flex;
+  align-items:flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.leadgate-captcha-row img{ border-radius: 8px; border: 1px solid rgba(255,255,255,.35); background:#fff; }
+.leadgate-actions{ display:flex; gap:10px; }
+.leadgate-msg{ min-height: 18px; color: #f8d07a; font-size: 12px; font-weight: 700; }
 .modal-btn:disabled{
   opacity: .65;
   cursor: not-allowed;
@@ -2077,12 +2111,59 @@ function initOnboardingFlow(){
       </div>
       <div class="leadgate-shell">
         <p class="leadgate-title">Client details form</p>
-        <iframe
-        class="leadgate-frame"
-        title="Smart Gain Client Details Form"
-        srcdoc="<div id='crmWebToEntityForm' class='zcwf_lblLeft crmWebToEntityForm' style='background-color:#1B4332;color:#D4AF37;max-width:600px;'><meta name='viewport' content='width=device-width, initial-scale=1.0'><meta http-equiv='content-type' content='text/html;charset=UTF-8'><script src='https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js'><\/script><style>html,body{margin:0}#crmWebToEntityForm{padding:16px;font-family:Calibri,Arial,sans-serif}.zcwf_row{margin:12px 0}.zcwf_col_lab{font-size:14px;margin-bottom:4px}.zcwf_col_fld input{width:100%;padding:8px;border:1px solid #c0c6cc;border-radius:4px}.zcwf_button{font-size:14px;border:1px solid #c0c6cc;padding:6px 10px;border-radius:4px;cursor:pointer}.formsubmit.zcwf_button{color:#fff;background:linear-gradient(0deg,#0279FF 0%,#00A3F3 100%)}<\/style><form id='webform87102000001520353' name='WebToLeads87102000001520353' accept-charset='UTF-8'><input type='text' style='display:none;' name='xnQsjsdp' value='45b2b1d32e505f15bfeada2612773fd8ca523cdf486420550b55d316172dc477'><input type='hidden' name='zc_gad' id='zc_gad' value=''><input type='text' style='display:none;' name='xmIwtLD' value='89a8083a7c4b05b0f5bca1725ce2d0cde0fe93cc6754f173d1adb0292aad1f87232275e08f7a0725e0501bafa50fd625'><input type='text' style='display:none;' name='actionType' value='TGVhZHM='><input type='text' style='display:none;' name='returnURL' value='null'><div class='zcwf_title' style='color:#D4AF37;font-weight:700;margin-bottom:8px;'>Client details</div><div class='zcwf_row'><div class='zcwf_col_lab'><label for='First_Name'>First Name <span style='color:red;'>*</span></label></div><div class='zcwf_col_fld'><input type='text' id='First_Name' name='First Name' maxlength='40'></div></div><div class='zcwf_row'><div class='zcwf_col_lab'><label for='Last_Name'>Last Name <span style='color:red;'>*</span></label></div><div class='zcwf_col_fld'><input type='text' id='Last_Name' name='Last Name' maxlength='80'></div></div><div class='zcwf_row'><div class='zcwf_col_lab'><label for='Email'>Email <span style='color:red;'>*</span></label></div><div class='zcwf_col_fld'><input type='text' ftype='email' id='Email' name='Email' maxlength='100'></div></div><div class='zcwf_row'><div class='zcwf_col_lab'><label for='Mobile'>Mobile <span style='color:red;'>*</span></label></div><div class='zcwf_col_fld'><input type='text' id='Mobile' name='Mobile' maxlength='30'></div></div><div class='zcwf_row'><div class='zcwf_col_lab'>Enter the Captcha</div><div class='zcwf_col_fld'><input type='text' id='captchaField87102000001520353' maxlength='10' name='enterdigest'></div></div><div class='zcwf_row'><img id='imgid87102000001520353' src='https://crm.zoho.com.au/crm/CaptchaServlet?formId=89a8083a7c4b05b0f5bca1725ce2d0cde0fe93cc6754f173d1adb0292aad1f87232275e08f7a0725e0501bafa50fd625&grpid=45b2b1d32e505f15bfeada2612773fd8ca523cdf486420550b55d316172dc477'><a href='javascript:;' onclick='reloadImg87102000001520353();'> Reload</a></div><div class='zcwf_row'><input type='submit' class='formsubmit zcwf_button' value='Submit'> <input type='reset' class='zcwf_button' value='Reset'></div><script>function reloadImg87102000001520353(){var captcha=document.getElementById('imgid87102000001520353');if(captcha.src.indexOf('&d')!==-1){captcha.src=captcha.src.substring(0,captcha.src.indexOf('&d'))+'&d'+new Date().getTime()}else{captcha.src=captcha.src+'&d'+new Date().getTime()}}function validateEmail87102000001520353(){var form=document.forms['WebToLeads87102000001520353'];var emailFld=form.querySelectorAll('[ftype=email]');for(i=0;i<emailFld.length;i++){var emailVal=emailFld[i].value;if((emailVal.replace(/^\\s+|\\s+$/g,'')).length!=0){var atpos=emailVal.indexOf('@');var dotpos=emailVal.lastIndexOf('.');if(atpos<1||dotpos<atpos+2||dotpos+2>=emailVal.length){alert('Please enter a valid email address.');emailFld[i].focus();return false}}}return true}function checkMandatory87102000001520353(){var mndFileds=new Array('First Name','Last Name','Email','Mobile');var fldLangVal=new Array('First Name','Last Name','Email','Mobile');for(i=0;i<mndFileds.length;i++){var fieldObj=document.forms['WebToLeads87102000001520353'][mndFileds[i]];if(fieldObj&&((fieldObj.value).replace(/^\\s+|\\s+$/g,'')).length==0){alert(fldLangVal[i]+' cannot be empty.');fieldObj.focus();return false}}if(!validateEmail87102000001520353()){return false}return true}$(document).ready(function(){$('#webform87102000001520353').submit(function(e){var ismandatory=checkMandatory87102000001520353();e.preventDefault();if(ismandatory){var formData=new FormData(this);$.ajax({url:'https://crm.zoho.com.au/crm/WebToLeadForm',type:'POST',data:formData,cache:false,contentType:false,processData:false,success:function(){window.parent.postMessage({type:'leadGateComplete'},'*');},error:function(){alert('an error occurred')}})}})});<\/script></form></div>"
-      ></iframe>
+        <form id="leadGateForm" class="leadgate-form" accept-charset="UTF-8">
+          <h4>Client details</h4>
+          <input type="text" style="display:none;" name="xnQsjsdp" value="45b2b1d32e505f15bfeada2612773fd8ca523cdf486420550b55d316172dc477">
+          <input type="hidden" name="zc_gad" value="">
+          <input type="text" style="display:none;" name="xmIwtLD" value="89a8083a7c4b05b0f5bca1725ce2d0cde0fe93cc6754f173d1adb0292aad1f87232275e08f7a0725e0501bafa50fd625">
+          <input type="text" style="display:none;" name="actionType" value="TGVhZHM=">
+          <input type="text" style="display:none;" name="returnURL" value="null">
+          <input type="text" style="display:none;" name="aG9uZXlwb3Q" value="">
+          <div class="leadgate-grid">
+            <label>First Name *<input type="text" name="First Name" maxlength="40" required></label>
+            <label>Last Name *<input type="text" name="Last Name" maxlength="80" required></label>
+            <label>Email *<input type="email" name="Email" maxlength="100" required></label>
+            <label>Mobile *<input type="text" name="Mobile" maxlength="30" required></label>
+            <label>Enter the Captcha<input id="leadGateCaptchaText" type="text" name="enterdigest" maxlength="10" required></label>
+            <div class="leadgate-captcha-row">
+              <img id="leadGateCaptchaImg" alt="Captcha" src="https://crm.zoho.com.au/crm/CaptchaServlet?formId=89a8083a7c4b05b0f5bca1725ce2d0cde0fe93cc6754f173d1adb0292aad1f87232275e08f7a0725e0501bafa50fd625&grpid=45b2b1d32e505f15bfeada2612773fd8ca523cdf486420550b55d316172dc477">
+              <button type="button" class="modal-btn modal-btn-secondary" id="leadGateReload">Reload</button>
+            </div>
+          </div>
+          <div id="leadGateMsg" class="leadgate-msg"></div>
+          <div class="leadgate-actions">
+            <button type="submit" class="modal-btn">Submit</button>
+            <button type="reset" class="modal-btn modal-btn-secondary">Reset</button>
+          </div>
+        </form>
       </div>`;
+    const leadForm = $("leadGateForm");
+    const capImg = $("leadGateCaptchaImg");
+    const capMsg = $("leadGateMsg");
+    const reloadCaptcha = () => {
+      if (!capImg) return;
+      const src = capImg.src.split('&d=')[0];
+      capImg.src = `${src}&d=${Date.now()}`;
+    };
+    $("leadGateReload")?.addEventListener('click', reloadCaptcha);
+    leadForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      capMsg.textContent = '';
+      const formData = new FormData(leadForm);
+      try{
+        const res = await fetch('https://crm.zoho.com.au/crm/WebToLeadForm', { method:'POST', body: formData });
+        const data = await res.json();
+        if (data.invalidCaptcha === 'true'){
+          capMsg.textContent = data.actionvalue || 'Invalid captcha. Please try again.';
+          reloadCaptcha();
+          return;
+        }
+        markLeadGateSeen();
+        onboardingModal.classList.remove('active');
+      } catch (err){
+        capMsg.textContent = 'Something went wrong. Please try again.';
+      }
+    });
   }
 
   nextBtn.addEventListener('click', () => {
@@ -2121,11 +2202,6 @@ function initOnboardingFlow(){
     warningModal.classList.remove('active');
     onboardingModal.classList.add('active');
     openChoice();
-  });
-  window.addEventListener('message', (event) => {
-    if (!event || !event.data || event.data.type !== 'leadGateComplete') return;
-    markLeadGateSeen();
-    onboardingModal.classList.remove('active');
   });
 }
 initOnboardingFlow();
