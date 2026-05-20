@@ -2087,7 +2087,7 @@ function initOnboardingFlow(){
 
   nextBtn.addEventListener('click', () => {
     if (state.step === 999){
-      if (state.mode === 'guided' && !hasSeenLeadGate()){
+      if (state.mode === 'guided'){
         state.step = 1000;
         renderLeadGate();
         return;
