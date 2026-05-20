@@ -624,29 +624,36 @@ input:hover, select:hover{
   background: #fff;
 }
 .leadgate-form{
-  background: linear-gradient(180deg, #173e2f, #1B4332);
-  border: 1px solid rgba(212,175,55,.35);
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(241,237,235,.92));
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 18px;
-  color: #F1EDEB;
+  color: var(--text);
   display: grid;
   gap: 12px;
 }
 .leadgate-form h4{
   margin: 0 0 4px 0;
-  color: var(--gold);
+  color: var(--green);
   font-family: var(--font-head);
   font-size: 18px;
 }
 .leadgate-grid{ display:grid; gap: 10px; }
-.leadgate-grid label{ font-weight:700; color: #f5e2a2; font-size: 13px; }
+.leadgate-grid label{ font-weight:700; color: var(--green); font-size: 13px; }
 .leadgate-grid input{
   width: 100%;
-  border: 1px solid rgba(255,255,255,.35);
+  border: 1px solid rgba(27,67,50,.24);
   border-radius: 10px;
   padding: 10px 12px;
   font-family: var(--font-body);
   font-size: 14px;
+  background: #fff;
+  color: var(--text);
+}
+.leadgate-grid input:focus{
+  outline: none;
+  border-color: rgba(212,175,55,.7);
+  box-shadow: 0 0 0 3px rgba(212,175,55,.18);
 }
 .leadgate-captcha-row{
   display:flex;
@@ -654,9 +661,9 @@ input:hover, select:hover{
   gap: 10px;
   flex-wrap: wrap;
 }
-.leadgate-captcha-row img{ border-radius: 8px; border: 1px solid rgba(255,255,255,.35); background:#fff; }
+.leadgate-captcha-row img{ border-radius: 8px; border: 1px solid rgba(27,67,50,.2); background:#fff; }
 .leadgate-actions{ display:flex; gap:10px; }
-.leadgate-msg{ min-height: 18px; color: #f8d07a; font-size: 12px; font-weight: 700; }
+.leadgate-msg{ min-height: 18px; color: #9c2f2f; font-size: 12px; font-weight: 700; }
 .modal-btn:disabled{
   opacity: .65;
   cursor: not-allowed;
@@ -2110,7 +2117,6 @@ function initOnboardingFlow(){
         Please complete this quick form to continue.
       </div>
       <div class="leadgate-shell">
-        <p class="leadgate-title">Client details form</p>
         <form id="leadGateForm" class="leadgate-form" accept-charset="UTF-8">
           <h4>Client details</h4>
           <input type="text" style="display:none;" name="xnQsjsdp" value="45b2b1d32e505f15bfeada2612773fd8ca523cdf486420550b55d316172dc477">
@@ -2127,7 +2133,7 @@ function initOnboardingFlow(){
             <label>Enter the Captcha<input id="leadGateCaptchaText" type="text" name="enterdigest" maxlength="10" required></label>
             <div class="leadgate-captcha-row">
               <img id="leadGateCaptchaImg" alt="Captcha" src="https://crm.zoho.com.au/crm/CaptchaServlet?formId=89a8083a7c4b05b0f5bca1725ce2d0cde0fe93cc6754f173d1adb0292aad1f87232275e08f7a0725e0501bafa50fd625&grpid=45b2b1d32e505f15bfeada2612773fd8ca523cdf486420550b55d316172dc477">
-              <button type="button" class="modal-btn modal-btn-secondary" id="leadGateReload">Reload</button>
+              <button type="button" class="modal-btn modal-btn-secondary" id="leadGateReload">Reload Captcha</button>
             </div>
           </div>
           <div id="leadGateMsg" class="leadgate-msg"></div>
