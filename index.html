@@ -1419,8 +1419,10 @@ function compute(i){
   const stampDuty = calcStampDuty(i.state, i.purchasePrice);
   const lmi = isEquityDeposit ? 0 : calcLmi(lvr, loanAmount);
   const cashRequired = isEquityDeposit ? 0 : deposit + lmi + stampDuty;
-  // 20% benchmark of equity to support a 105% lend against existing security
-  const equityRequired = isEquityDeposit ? i.purchasePrice * 0.20 : 0;
+  // 20% benchmark of equity to support a 105% lend against existing security,
+  // plus the same purchase costs a cash buyer would fund
+  const equityBenchmark = isEquityDeposit ? i.purchasePrice * 0.20 : 0;
+  const equityRequired = isEquityDeposit ? equityBenchmark + lmi + stampDuty : 0;
 
   const monthlyRate = i.interestRate / 12;
   const nper = i.loanTermYears * 12;
@@ -1445,7 +1447,7 @@ function compute(i){
 
   return {
     loanAmount, deposit, lvr, isEquityDeposit,
-    stampDuty, lmi, cashRequired, equityRequired,
+    stampDuty, lmi, cashRequired, equityBenchmark, equityRequired,
     monthlyRate, nper, monthlyPAndI, interestPortionMonth1,
     isInterestOnly, effectiveMonthlyPayment,
     annualExpense, netRentYr, yieldGross,
@@ -1641,7 +1643,7 @@ function render(){
   if (o.isEquityDeposit){
     $("outCashRequiredLabel").textContent = "Equity Required";
     $("outCashRequired").textContent = fmtAUD0(o.equityRequired);
-    $("outCashRequiredSub").textContent = "20% equity benchmark — no cash deposit; costs funded via the 105% lend";
+    $("outCashRequiredSub").textContent = `Equity ${fmtAUD0(o.equityBenchmark)} (20% benchmark) + LMI ${fmtAUD0(o.lmi)} + Duty ${fmtAUD0(o.stampDuty)} — no cash deposit`;
   } else {
     $("outCashRequiredLabel").textContent = "Cash Required";
     $("outCashRequired").textContent = fmtAUD0(o.cashRequired);
