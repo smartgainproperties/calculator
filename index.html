@@ -1032,7 +1032,7 @@ input:hover, select:hover{
         <p>
           Percent fields accept either <b>20</b> or <b>0.20</b>. LMI + stamp duty are auto (estimate).
           Depreciation is auto-estimated. Tax deductible ratio defaults to <b>100%</b>.
-          Loan is <b>P&amp;I from day 1</b>.
+          Repayments are modelled from day 1 (<b>P&amp;I or Interest Only</b>).
         </p>
       </div>
       <div class="actions">
@@ -1161,7 +1161,7 @@ input:hover, select:hover{
         <div class="content">
           <div class="kpi">
             <div class="kpiCard kpiHero">
-              <div class="k">Cash Required</div>
+              <div class="k" id="outCashRequiredLabel">Cash Required</div>
               <div class="v" id="outCashRequired">$0</div>
               <div class="hint" id="outCashRequiredSub">Deposit + LMI + stamp duty</div>
             </div>
@@ -1265,7 +1265,7 @@ input:hover, select:hover{
           </table>
         </div>
         <div class="footerNote">
-          Loan balance amortises with standard P&amp;I (fixed payment; balance reduces). Chart includes Year 0 baseline.
+          P&amp;I loans amortise with a fixed payment (balance reduces); interest-only loans hold the balance constant. Chart includes Year 0 baseline.
         </div>
       </div>
     </section>
@@ -1378,39 +1378,52 @@ function getInputs(){
     superYr: parseFloat($("superYr").value) || 0,
     builtYear: parseInt($("builtYear").value) || 0,
     deprRatePct: parsePercentLoose($("deprRatePct").value),
-    taxDeductRatio: parsePercentLoose($("taxDeductRatio").value),
+    taxDeductRatio: $("taxDeductRatio").value.trim() === "" ? 1 : parsePercentLoose($("taxDeductRatio").value),
     taxRate: parsePercentLoose($("taxRate").value),
     equityDeposit: $("equityDeposit").checked,
     capGrowth: parsePercentLoose($("capGrowthPct").value || "6"),
     rentGrowth: parsePercentLoose($("rentGrowthPct").value || "3"),
-    cashGrowth: parsePercentLoose($("cashflowGrowthPct").value || "0")
+    cashGrowth: parsePercentLoose($("cashflowGrowthPct").value || "2")
   };
+}
+
+// Div 43 capital works: building portion (~40% of price) at the given rate,
+// only for post-1985 builds still inside the 40-year deduction window.
+function calcDepreciationYr(i, yearOffset = 0){
+  if (!(i.builtYear > 1985)) return 0;
+  const buildingAge = (new Date().getFullYear() + yearOffset) - i.builtYear;
+  if (buildingAge >= 40) return 0;
+  return i.purchasePrice * 0.40 * clamp01(i.deprRatePct || 0.025);
+}
+
+function calcTaxPosition(netRentYr, deductibleExpenses, i){
+  const taxableIncome = netRentYr - deductibleExpenses;
+  const benefit = taxableIncome < 0
+    ? -taxableIncome * clamp01(i.taxDeductRatio) * clamp01(i.taxRate)
+    : 0;
+  return { taxableIncome, benefit };
+}
+
+function calcOperatingExpenses(i, growthFactor = 1){
+  return (i.councilYr + i.buildingInsYr + i.landlordInsYr + i.maintenanceYr + i.accountingYr) * growthFactor;
 }
 
 function compute(i){
   const depositPct = clamp01(i.depositPct);
   const rentComm = clamp01(i.rentComm);
-  const deprRatePct = clamp01(i.deprRatePct || 0.025);
-  const currentYear = new Date().getFullYear();
-  const buildingAge = i.builtYear > 0 ? currentYear - i.builtYear : 999;
-  const deprEligible = i.builtYear > 1985 && buildingAge < 40;
-  const taxDeductWasBlank = $("taxDeductRatio").value.trim() === "";
-  const taxDeductRatio = clamp01(taxDeductWasBlank ? 1 : i.taxDeductRatio);
-  const taxRate = clamp01(i.taxRate);
 
   const isEquityDeposit = i.equityDeposit;
-  const effectiveDepositPct = isEquityDeposit ? 0 : depositPct;
-  const loanAmount = isEquityDeposit ? i.purchasePrice * 1.05 : i.purchasePrice * (1 - effectiveDepositPct);
-  const deposit = isEquityDeposit ? 0 : i.purchasePrice * effectiveDepositPct;
+  const loanAmount = isEquityDeposit ? i.purchasePrice * 1.05 : i.purchasePrice * (1 - depositPct);
+  const deposit = isEquityDeposit ? 0 : i.purchasePrice * depositPct;
   const lvr = (i.purchasePrice > 0) ? (loanAmount / i.purchasePrice) : 0;
   const stampDuty = calcStampDuty(i.state, i.purchasePrice);
   const lmi = isEquityDeposit ? 0 : calcLmi(lvr, loanAmount);
   const cashRequired = isEquityDeposit ? 0 : deposit + lmi + stampDuty;
+  // 20% benchmark of equity to support a 105% lend against existing security
+  const equityRequired = isEquityDeposit ? i.purchasePrice * 0.20 : 0;
 
   const monthlyRate = i.interestRate / 12;
   const nper = i.loanTermYears * 12;
-
-  // FIX: pmt() always calculates correctly - higher rate = higher payment
   const monthlyPAndI = pmt(monthlyRate, nper, loanAmount);
   const interestPortionMonth1 = loanAmount * i.interestRate / 12;
 
@@ -1418,34 +1431,27 @@ function compute(i){
   const effectiveMonthlyPayment = isInterestOnly ? interestPortionMonth1 : monthlyPAndI;
 
   const interestYr1 = loanAmount * i.interestRate;
-  const operatingExpenses = i.councilYr + i.buildingInsYr + i.landlordInsYr + i.maintenanceYr + i.accountingYr;
+  const operatingExpenses = calcOperatingExpenses(i);
   const annualExpense = (effectiveMonthlyPayment * 12) + operatingExpenses;
   const netRentYr = i.rentWeek * 52 * (1 - rentComm);
   const yieldGross = (i.purchasePrice > 0) ? ((i.rentWeek * 52) / i.purchasePrice) : 0;
   const cashflowYrPreTax = netRentYr - annualExpense - i.superYr;
   const cashflowMonthPreTax = cashflowYrPreTax / 12;
 
-  const depreciationYr = deprEligible ? i.purchasePrice * 0.40 * deprRatePct : 0;
-  const deductibleExpenses = interestYr1 + operatingExpenses + depreciationYr;
-  const taxablePropertyIncome = netRentYr - deductibleExpenses;
+  const depreciationYr = calcDepreciationYr(i);
+  const tax = calcTaxPosition(netRentYr, interestYr1 + operatingExpenses + depreciationYr, i);
 
-  let taxBenefit = 0;
-  if (taxablePropertyIncome < 0) {
-    taxBenefit = Math.abs(taxablePropertyIncome) * taxDeductRatio * taxRate;
-  }
-
-  const cashflowYrAfterTax = cashflowYrPreTax + taxBenefit;
-  const cashflowMonthAfterTax = cashflowYrAfterTax / 12;
+  const cashflowYrAfterTax = cashflowYrPreTax + tax.benefit;
 
   return {
     loanAmount, deposit, lvr, isEquityDeposit,
-    stampDuty, lmi, cashRequired,
+    stampDuty, lmi, cashRequired, equityRequired,
     monthlyRate, nper, monthlyPAndI, interestPortionMonth1,
     isInterestOnly, effectiveMonthlyPayment,
     annualExpense, netRentYr, yieldGross,
     cashflowYrPreTax, cashflowMonthPreTax,
-    depreciationYr, taxablePropertyIncome, taxBenefit,
-    cashflowYrAfterTax, cashflowMonthAfterTax
+    depreciationYr, taxablePropertyIncome: tax.taxableIncome, taxBenefit: tax.benefit,
+    cashflowYrAfterTax, cashflowMonthAfterTax: cashflowYrAfterTax / 12
   };
 }
 
@@ -1453,76 +1459,48 @@ function projectValue(base, annualRate, years){
   return base * Math.pow(1 + annualRate, years);
 }
 
-function calculateYearCashflow(year, baseInputs, baseComputed){
-  const rentGrowth = parsePercentLoose($("rentGrowthPct").value || "3");
-  const expenseGrowth = parsePercentLoose($("cashflowGrowthPct").value || "2");
-  const projectedRentWk = baseInputs.rentWeek * Math.pow(1 + rentGrowth, year);
-  const rentComm = parsePercentLoose(baseInputs.rentComm);
-  const netRentYr = projectedRentWk * 52 * (1 - rentComm);
-
-  const months = Math.min(year * 12, baseComputed.nper);
-  const balanceStart = remainingBalance(baseComputed.loanAmount, baseComputed.monthlyRate, baseComputed.monthlyPAndI, months);
-  const balanceEnd = remainingBalance(baseComputed.loanAmount, baseComputed.monthlyRate, baseComputed.monthlyPAndI, Math.min(months + 12, baseComputed.nper));
-  const principalPaid = balanceStart - balanceEnd;
-  const totalPayments = baseComputed.monthlyPAndI * Math.min(12, baseComputed.nper - months);
-  const interestPaid = totalPayments - principalPaid;
-
-  const councilYr = baseInputs.councilYr * Math.pow(1 + expenseGrowth, year);
-  const buildingInsYr = baseInputs.buildingInsYr * Math.pow(1 + expenseGrowth, year);
-  const landlordInsYr = baseInputs.landlordInsYr * Math.pow(1 + expenseGrowth, year);
-  const maintenanceYr = baseInputs.maintenanceYr * Math.pow(1 + expenseGrowth, year);
-  const accountingYr = baseInputs.accountingYr * Math.pow(1 + expenseGrowth, year);
-  const otherExpenses = councilYr + buildingInsYr + landlordInsYr + maintenanceYr + accountingYr;
-  const annualExpense = totalPayments + otherExpenses;
-  const cashflowYrPreTax = netRentYr - annualExpense - baseInputs.superYr;
-
-  const deprRatePct = parsePercentLoose(baseInputs.deprRatePct || 2.5);
-  const builtYear = parseInt(baseInputs.builtYear) || 0;
-  const buildingAge = builtYear > 0 ? (new Date().getFullYear() + year) - builtYear : 999;
-  const deprEligible = builtYear > 1985 && buildingAge < 40;
-  const depreciationYr = deprEligible ? baseInputs.purchasePrice * 0.40 * deprRatePct : 0;
-
-  const taxDeductRatio = parsePercentLoose(baseInputs.taxDeductRatio || 100);
-  const taxRate = parsePercentLoose(baseInputs.taxRate);
-  const deductibleExpenses = interestPaid + otherExpenses + depreciationYr;
-  const taxablePropertyIncome = netRentYr - deductibleExpenses;
-
-  let taxBenefit = 0;
-  if (taxablePropertyIncome < 0) {
-    taxBenefit = Math.abs(taxablePropertyIncome) * taxDeductRatio * taxRate;
-  }
-  return cashflowYrPreTax + taxBenefit;
+// Loan balance after `months`. Interest-only loans never amortise here
+// (modelled as IO for the life of the loan, matching the main calc).
+function loanBalanceAtMonth(o, months){
+  if (o.isInterestOnly) return o.loanAmount;
+  return remainingBalance(o.loanAmount, o.monthlyRate, o.monthlyPAndI, Math.min(months, o.nper));
 }
 
-function renderProjection(baseComputed, baseInputs){
-  const years = [0, 1, 2, 3, 5, 10, 20, 30];
-  const capGrowth = parsePercentLoose($("capGrowthPct").value || "6");
-  const rentGrowth = parsePercentLoose($("rentGrowthPct").value || "3");
-  const baseValue = baseInputs.purchasePrice;
-  const baseRentWk = baseInputs.rentWeek;
-  const pv = baseComputed.loanAmount;
-  const r = baseComputed.monthlyRate;
-  const payment = baseComputed.monthlyPAndI;
-  const nper = baseComputed.nper;
+function calculateYearCashflow(year, i, o){
+  const projectedRentWk = i.rentWeek * Math.pow(1 + i.rentGrowth, year);
+  const netRentYr = projectedRentWk * 52 * (1 - clamp01(i.rentComm));
 
-  const rows = [], xVals = [], values = [], balances = [];
-  for(const y of years){
-    const months = Math.min(y * 12, nper);
-    const v = projectValue(baseValue, capGrowth, y);
-    const rw = projectValue(baseRentWk, rentGrowth, y);
-    const bal = remainingBalance(pv, r, payment, months);
-    const eq = Math.max(0, v - bal);
-    let cash;
-    if (y === 0) {
-      cash = baseComputed.cashflowMonthAfterTax * 12;
-    } else {
-      cash = calculateYearCashflow(y, baseInputs, baseComputed);
-    }
-    xVals.push(y);
-    values.push(v);
-    balances.push(bal);
-    rows.push({y, v, bal, eq, rw, cash});
+  let totalPayments, interestPaid;
+  if (o.isInterestOnly){
+    interestPaid = o.loanAmount * i.interestRate;
+    totalPayments = interestPaid;
+  } else {
+    const startMonths = Math.min(year * 12, o.nper);
+    const endMonths = Math.min(startMonths + 12, o.nper);
+    const principalPaid = loanBalanceAtMonth(o, startMonths) - loanBalanceAtMonth(o, endMonths);
+    totalPayments = o.monthlyPAndI * (endMonths - startMonths);
+    interestPaid = totalPayments - principalPaid;
   }
+
+  const operatingExpenses = calcOperatingExpenses(i, Math.pow(1 + i.cashGrowth, year));
+  const cashflowYrPreTax = netRentYr - totalPayments - operatingExpenses - i.superYr;
+
+  const depreciationYr = calcDepreciationYr(i, year);
+  const tax = calcTaxPosition(netRentYr, interestPaid + operatingExpenses + depreciationYr, i);
+  return cashflowYrPreTax + tax.benefit;
+}
+
+function renderProjection(o, i){
+  const years = [0, 1, 2, 3, 5, 10, 20, 30];
+
+  const rows = years.map(y => {
+    const v = projectValue(i.purchasePrice, i.capGrowth, y);
+    const rw = projectValue(i.rentWeek, i.rentGrowth, y);
+    const bal = loanBalanceAtMonth(o, y * 12);
+    const eq = Math.max(0, v - bal);
+    const cash = (y === 0) ? o.cashflowYrAfterTax : calculateYearCashflow(y, i, o);
+    return { y, v, bal, eq, rw, cash };
+  });
 
   $("projectionRows").innerHTML = rows.map(row => `
     <tr>
@@ -1535,22 +1513,19 @@ function renderProjection(baseComputed, baseInputs){
     </tr>
   `).join("");
 
+  $("chartCaption").innerHTML = "Chart shows projected <b>Property Value</b> and <b>Loan Balance</b> over time. Includes <b>Year 0</b> baseline.";
+
   const canvas = $("portfolioChart");
-  const caption = $("chartCaption");
   const content = $("advancedContent");
-
-  caption.innerHTML = "Chart shows projected <b>Property Value</b> and <b>Loan Balance</b> over time. Includes <b>Year 0</b> baseline.";
-
   if (!canvas) return;
 
-  const draw = () => {
-    drawDualAxis(canvas, xVals, values, balances, "Value", "Loan");
-  };
-
   // If panel is not visible yet, defer draw until it is
-  if (content && !content.classList.contains("active")) {
-    return;
-  }
+  if (content && !content.classList.contains("active")) return;
+
+  const draw = () => drawPortfolioChart(canvas, years, [
+    { label: "Property Value", color: "#1B4332", data: rows.map(r => r.v) },
+    { label: "Loan Balance", color: "#D4AF37", data: rows.map(r => r.bal) }
+  ]);
 
   // Retry until canvas has a real width (handles animation/transition delay)
   const attemptDraw = (tries = 0) => {
@@ -1565,261 +1540,92 @@ function renderProjection(baseComputed, baseInputs){
   requestAnimationFrame(() => attemptDraw());
 }
 
-class ChartConfig {
-  constructor(options = {}) {
-    this.colors = {
-      primary: '#1B4332',
-      secondary: '#D4AF37',
-      grid: 'rgba(27,67,50,.14)',
-      label: 'rgba(16,20,18,.65)',
-      legendLabel: 'rgba(16,20,18,.75)'
-    };
-    this.padding = { left: 56, right: 50, top: 26, bottom: 34 };
-    this.font = { size: 12, family: getComputedStyle(document.body).fontFamily };
-    this.line = { width: 2.5, pointRadius: 3.5 };
-    this.grid = { lineWidth: 1, divisions: 4 };
-    this.legend = { boxSize: 12, spacing: 92, offset: { x: 18, y: 10 } };
-    this.axis = { topMargin: 1.06, rightAxisMargin: 1.16 };
-    Object.assign(this, options);
+function fmtAxisAUD(v){
+  if (Math.abs(v) >= 1e6){
+    const m = v / 1e6;
+    return '$' + (m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)) + 'M';
   }
-  getDPR() { return window.devicePixelRatio || 1; }
+  if (Math.abs(v) >= 1000) return '$' + Math.round(v / 1000) + 'k';
+  return '$' + Math.round(v);
 }
 
-class ChartData {
-  constructor(xValues, series) {
-    this.x = this.sanitize(xValues);
-    this.series = series.map(s => ({
-      data: this.sanitize(s.data),
-      label: s.label || '',
-      color: s.color || '#000000',
-      axis: s.axis || 'left',
-      formatType: s.formatType || 'currency'
-    }));
-  }
-  sanitize(arr) { return arr.map(v => Number.isFinite(v) ? v : 0); }
-  getBounds(arr) {
-    const finite = arr.filter(Number.isFinite);
-    if (!finite.length) return { min: 0, max: 1 };
-    return { min: Math.min(...finite), max: Math.max(...finite) };
-  }
-  getMax(arr, fallback = 1) {
-    const finite = arr.filter(Number.isFinite);
-    return finite.length ? Math.max(...finite, fallback) : fallback;
-  }
-  getXBounds() { return this.getBounds(this.x); }
-  getSeriesBounds(axisType = 'left') {
-    const filtered = this.series.filter(s => s.axis === axisType).flatMap(s => s.data);
-    return this.getBounds(filtered);
-  }
-  getSeriesMax(axisType = 'left') {
-    const filtered = this.series.filter(s => s.axis === axisType).flatMap(s => s.data);
-    return this.getMax(filtered);
-  }
-}
+function drawPortfolioChart(canvas, years, seriesList){
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-class ChartAxis {
-  constructor(config, data, type = 'left') {
-    this.config = config;
-    this.data = data;
-    this.type = type;
-    this.setupScale();
-  }
-  setupScale() {
-    const margin = this.type === 'right' ? this.config.axis.rightAxisMargin : this.config.axis.topMargin;
-    this.min = 0;
-    this.max = this.data.getSeriesMax(this.type) * margin;
-    this.range = this.max - this.min || 1;
-  }
-  // FIX: use plotBottom (not plotHeight) for correct Y-axis scaling
-  scale(value, plotHeight, plotTop, plotBottom) {
-    const normalized = (value - this.min) / this.range;
-    return plotTop + (1 - normalized) * plotHeight;
-  }
-  getTicks(count = 5) {
-    const ticks = [];
-    for (let i = 0; i < count; i++) {
-      const frac = 1 - i / (count - 1);
-      ticks.push({ value: this.min + frac * this.range, position: i / (count - 1) });
-    }
-    return ticks;
-  }
-  formatLabel(value, formatType = 'currency') {
-    if (formatType === 'currency') {
-      if (Math.abs(value) >= 1000000) {
-        const millions = value / 1000000;
-        return (millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)) + 'M';
-      }
-      return (value / 1000).toFixed(0) + 'k';
-    } else if (formatType === 'rent') {
-      return '$' + value.toFixed(0);
-    }
-    return value.toFixed(0);
-  }
-}
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const cssW = Math.max(320, rect.width || 0);
+  const cssH = Math.max(140, parseInt(canvas.getAttribute('height') || '160', 10));
+  canvas.width = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
 
-class ChartGrid {
-  constructor(config) { this.config = config; }
-  render(ctx, bounds, dpr) {
-    const { plotLeft, plotRight, plotTop, plotHeight } = bounds;
-    ctx.strokeStyle = this.config.colors.grid;
-    ctx.lineWidth = this.config.grid.lineWidth * dpr;
-    const divisions = this.config.grid.divisions;
-    for (let i = 0; i <= divisions; i++) {
-      const y = plotTop + i * (plotHeight / divisions);
-      ctx.beginPath();
-      ctx.moveTo(plotLeft, y);
-      ctx.lineTo(plotRight, y);
-      ctx.stroke();
-    }
-  }
-}
+  const w = canvas.width, h = canvas.height;
+  const pad = { left: 56, right: 16, top: 30, bottom: 34 };
+  const plotLeft = pad.left * dpr, plotRight = w - pad.right * dpr;
+  const plotTop = pad.top * dpr, plotBottom = h - pad.bottom * dpr;
+  const plotW = plotRight - plotLeft, plotH = plotBottom - plotTop;
+  const gridColor = 'rgba(27,67,50,.14)', labelColor = 'rgba(16,20,18,.65)';
+  const divisions = 4;
 
-class ChartSeries {
-  constructor(config) { this.config = config; }
-  render(ctx, xValues, yValues, xScale, yScale, color, dpr) {
-    if (xValues.length === 0 || yValues.length === 0) return;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = this.config.line.width * dpr;
+  ctx.clearRect(0, 0, w, h);
+  ctx.font = `${12 * dpr}px ${getComputedStyle(document.body).fontFamily}`;
+
+  const allValues = seriesList.flatMap(s => s.data).filter(Number.isFinite);
+  const maxY = ((allValues.length ? Math.max(...allValues, 0) : 0) * 1.06) || 1;
+
+  // Evenly spaced x positions (categorical), so the dense early years
+  // (0,1,2,3) don't bunch up against the 5/10/20/30 milestones.
+  const xAt = (idx) => years.length > 1
+    ? plotLeft + (idx / (years.length - 1)) * plotW
+    : plotLeft + plotW / 2;
+  const yAt = (v) => plotBottom - ((Number.isFinite(v) ? v : 0) / maxY) * plotH;
+
+  // grid lines + y-axis labels
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = dpr;
+  ctx.fillStyle = labelColor;
+  ctx.textAlign = 'left';
+  for (let d = 0; d <= divisions; d++){
+    const y = plotTop + (d / divisions) * plotH;
     ctx.beginPath();
-    xValues.forEach((x, idx) => {
-      const px = xScale(x);
-      const py = yScale(yValues[idx]);
-      if (idx === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    });
+    ctx.moveTo(plotLeft, y);
+    ctx.lineTo(plotRight, y);
     ctx.stroke();
-    ctx.fillStyle = color;
-    xValues.forEach((x, idx) => {
-      const px = xScale(x);
-      const py = yScale(yValues[idx]);
+    ctx.fillText(fmtAxisAUD(maxY * (1 - d / divisions)), 8 * dpr, y + 4 * dpr);
+  }
+
+  // x-axis labels
+  ctx.textAlign = 'center';
+  years.forEach((yr, idx) => ctx.fillText('Y' + yr, xAt(idx), plotBottom + 22 * dpr));
+
+  // series lines + points
+  seriesList.forEach(s => {
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2.5 * dpr;
+    ctx.beginPath();
+    s.data.forEach((v, idx) => idx === 0 ? ctx.moveTo(xAt(idx), yAt(v)) : ctx.lineTo(xAt(idx), yAt(v)));
+    ctx.stroke();
+    ctx.fillStyle = s.color;
+    s.data.forEach((v, idx) => {
       ctx.beginPath();
-      ctx.arc(px, py, this.config.line.pointRadius * dpr, 0, Math.PI * 2);
+      ctx.arc(xAt(idx), yAt(v), 3.5 * dpr, 0, Math.PI * 2);
       ctx.fill();
     });
-  }
-}
+  });
 
-class ChartLegend {
-  constructor(config) { this.config = config; }
-  render(ctx, series, bounds, dpr) {
-    const { plotLeft, plotTop } = bounds;
-    const { boxSize, spacing, offset } = this.config.legend;
-    const lx = plotLeft;
-    const ly = plotTop - offset.y * dpr;
-    ctx.fillStyle = this.config.colors.legendLabel;
-    ctx.textAlign = 'left';
-    series.forEach((s, idx) => {
-      const xPos = lx + idx * spacing * dpr;
-      ctx.fillStyle = s.color;
-      ctx.fillRect(xPos, ly - boxSize * dpr, boxSize * dpr, boxSize * dpr);
-      ctx.fillStyle = this.config.colors.legendLabel;
-      ctx.fillText(s.label, xPos + offset.x * dpr, ly);
-    });
-  }
-}
-
-class ChartRenderer {
-  constructor(canvas, config = null) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.config = config || new ChartConfig();
-    this.grid = new ChartGrid(this.config);
-    this.seriesRenderer = new ChartSeries(this.config);
-    this.legend = new ChartLegend(this.config);
-  }
-  setupCanvas() {
-    const dpr = this.config.getDPR();
-    const rect = this.canvas.getBoundingClientRect();
-    const cssW = Math.max(320, rect.width || 0);
-    const cssH = Math.max(140, parseInt(this.canvas.getAttribute('height') || '160', 10));
-    this.canvas.width = Math.floor(cssW * dpr);
-    this.canvas.height = Math.floor(cssH * dpr);
-    return { dpr, w: this.canvas.width, h: this.canvas.height };
-  }
-  getBounds(w, h, dpr) {
-    const pad = this.config.padding;
-    return {
-      plotLeft: pad.left * dpr,
-      plotRight: w - pad.right * dpr,
-      plotTop: pad.top * dpr,
-      plotBottom: h - pad.bottom * dpr,
-      plotWidth: w - (pad.left + pad.right) * dpr,
-      plotHeight: h - (pad.top + pad.bottom) * dpr
-    };
-  }
-  createScaleFunctions(data, bounds) {
-    const xBounds = data.getXBounds();
-    const xRange = xBounds.max - xBounds.min || 1;
-    const xScale = (x) => bounds.plotLeft + ((x - xBounds.min) / xRange) * bounds.plotWidth;
-    return { xBounds, xScale };
-  }
-  renderAxes(data, bounds, dpr, hasRightAxis = false) {
-    const leftAxis = new ChartAxis(this.config, data, 'left');
-    const rightAxis = hasRightAxis ? new ChartAxis(this.config, data, 'right') : null;
-    this.ctx.font = `${this.config.font.size * dpr}px ${this.config.font.family}`;
-    this.ctx.fillStyle = this.config.colors.label;
-    const leftTicks = leftAxis.getTicks(this.config.grid.divisions + 1);
-    this.ctx.textAlign = 'left';
-    leftTicks.forEach(tick => {
-      const y = bounds.plotTop + tick.position * bounds.plotHeight;
-      const leftSeries = data.series.find(s => s.axis === 'left');
-      const label = leftAxis.formatLabel(tick.value, leftSeries?.formatType);
-      this.ctx.fillText(label, 8 * dpr, y + 4 * dpr);
-    });
-    if (rightAxis) {
-      this.ctx.textAlign = 'right';
-      const rightTicks = rightAxis.getTicks(this.config.grid.divisions + 1);
-      rightTicks.forEach(tick => {
-        const y = bounds.plotTop + tick.position * bounds.plotHeight;
-        const rightSeries = data.series.find(s => s.axis === 'right');
-        const label = rightAxis.formatLabel(tick.value, rightSeries?.formatType);
-        this.ctx.fillText(label, bounds.plotRight + 42 * dpr, y + 4 * dpr);
-      });
-    }
-    return { leftAxis, rightAxis };
-  }
-  renderXLabels(xValues, xScale, bounds, dpr) {
-    this.ctx.fillStyle = this.config.colors.label;
-    this.ctx.textAlign = 'center';
-    xValues.forEach(x => {
-      const px = xScale(x);
-      this.ctx.fillText('Y' + x, px, bounds.plotBottom + 22 * dpr);
-    });
-  }
-  render(xValues, series) {
-    if (!this.ctx) return;
-    const { dpr, w, h } = this.setupCanvas();
-    this.ctx.clearRect(0, 0, w, h);
-    const data = new ChartData(xValues, series);
-    const bounds = this.getBounds(w, h, dpr);
-    this.grid.render(this.ctx, bounds, dpr);
-    const hasRightAxis = series.some(s => s.axis === 'right');
-    const { leftAxis, rightAxis } = this.renderAxes(data, bounds, dpr, hasRightAxis);
-    const { xScale } = this.createScaleFunctions(data, bounds);
-    this.renderXLabels(data.x, xScale, bounds, dpr);
-    data.series.forEach(s => {
-      const axis = s.axis === 'right' && rightAxis ? rightAxis : leftAxis;
-      // FIX: pass bounds.plotBottom (was incorrectly bounds.plotHeight before)
-      const yScale = (y) => axis.scale(y, bounds.plotHeight, bounds.plotTop, bounds.plotBottom);
-      this.seriesRenderer.render(this.ctx, data.x, s.data, xScale, yScale, s.color, dpr);
-    });
-    this.legend.render(this.ctx, data.series, bounds, dpr);
-  }
-}
-
-function drawDualAxis(canvas, xVals, leftSeries, rightSeries, leftLabel, rightLabel) {
-  const renderer = new ChartRenderer(canvas);
-  const series = [
-    { data: leftSeries, label: leftLabel, color: '#1B4332', axis: 'left', formatType: 'currency' },
-    { data: rightSeries, label: rightLabel, color: '#D4AF37', axis: 'left', formatType: 'currency' }
-  ];
-  renderer.render(xVals, series);
-}
-
-function drawSingle(canvas, xVals, series, label) {
-  const renderer = new ChartRenderer(canvas);
-  const seriesConfig = [{ data: series, label: label, color: '#1B4332', axis: 'left', formatType: 'currency' }];
-  renderer.render(xVals, seriesConfig);
+  // legend (top-left, spaced by measured label width)
+  const box = 11 * dpr;
+  let lx = plotLeft;
+  const ly = plotTop - 9 * dpr;
+  ctx.textAlign = 'left';
+  seriesList.forEach(s => {
+    ctx.fillStyle = s.color;
+    ctx.fillRect(lx, ly - box + dpr, box, box);
+    ctx.fillStyle = labelColor;
+    ctx.fillText(s.label, lx + box + 6 * dpr, ly);
+    lx += box + 6 * dpr + ctx.measureText(s.label).width + 18 * dpr;
+  });
 }
 
 function render(){
@@ -1832,10 +1638,15 @@ function render(){
   $("outLmi").textContent = fmtAUD0(o.lmi);
   $("outDuty").textContent = fmtAUD0(o.stampDuty);
   $("outDepr").textContent = fmtAUD0(o.depreciationYr);
-  $("outCashRequired").textContent = fmtAUD0(o.cashRequired);
-  $("outCashRequiredSub").textContent = o.isEquityDeposit
-    ? `Funded via equity — estimated equity required ${fmtAUD0(i.purchasePrice * 0.20)} (20% benchmark)`
-    : `Deposit ${fmtAUD0(o.deposit)} + LMI ${fmtAUD0(o.lmi)} + Duty ${fmtAUD0(o.stampDuty)}`;
+  if (o.isEquityDeposit){
+    $("outCashRequiredLabel").textContent = "Equity Required";
+    $("outCashRequired").textContent = fmtAUD0(o.equityRequired);
+    $("outCashRequiredSub").textContent = "20% equity benchmark — no cash deposit; costs funded via the 105% lend";
+  } else {
+    $("outCashRequiredLabel").textContent = "Cash Required";
+    $("outCashRequired").textContent = fmtAUD0(o.cashRequired);
+    $("outCashRequiredSub").textContent = `Deposit ${fmtAUD0(o.deposit)} + LMI ${fmtAUD0(o.lmi)} + Duty ${fmtAUD0(o.stampDuty)}`;
+  }
 
   if (o.isInterestOnly) {
     $("outMonthlyRepaymentLabel").innerHTML = "Monthly Repayment (IO)";
@@ -1857,7 +1668,7 @@ function render(){
   $("outNetCashMonthFinal").innerHTML = `<strong>${fmtSignedAUD(o.cashflowMonthAfterTax, 2)}</strong>`;
 
   const addr = i.address ? i.address : "Property";
-  const ir = parsePercentLoose($("interestRate").value) * 100;
+  const ir = i.interestRate * 100;
   $("reportLine").textContent =
     `${addr} (${i.state}) \u2022 Purchase ${fmtAUD0(i.purchasePrice)} \u2022 LVR ${(o.lvr*100).toFixed(1)}% \u2022 Rate ${isFinite(ir)?ir.toFixed(2):"0.00"}% \u2022 Net cashflow ${fmtSignedAUD(o.cashflowMonthAfterTax,2)}/mo`;
 
@@ -2060,14 +1871,12 @@ function initOnboardingFlow(){
       $("equityDeposit").checked = false;
       $("depositPct").disabled = false;
     }
-    const percentFields = new Set(['depositPct','interestRate','rentComm']);
     for (const s of steps){
       if (!s.target) continue;
       const ans = state.answers[s.id];
       if (ans === undefined || ans === null || ans === '') continue;
       const el = $(s.target);
-      if (!el) continue;
-      el.value = percentFields.has(s.target) ? ans : ans;
+      if (el) el.value = ans;
     }
     render();
   }
